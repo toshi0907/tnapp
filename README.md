@@ -1,4 +1,4 @@
-# Totos API Server
+# TN API Server
 
 Node.js で構築されたシンプルなAPIサーバです。
 
