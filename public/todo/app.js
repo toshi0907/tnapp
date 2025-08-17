@@ -9,9 +9,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const configRes = await fetch('/config');
     const config = await configRes.json();
+    
+    // 本番環境（リバースプロキシ）では現在のプロトコルとホストを使用
+    // 開発環境では設定されたポートを使用
+    const currentProtocol = window.location.protocol;
     const currentHost = window.location.hostname;
-    const currentPort = config.port;
-    API = `http://${currentHost}:${currentPort}/api/todos`;
+    const isProduction = currentProtocol === 'https:' || window.location.port === '';
+    
+    if (isProduction) {
+      // 本番環境: リバースプロキシ経由
+      API = `${currentProtocol}//${window.location.host}/api/todos`;
+    } else {
+      // 開発環境: 直接ポート指定
+      const currentPort = config.port;
+      API = `${currentProtocol}//${currentHost}:${currentPort}/api/todos`;
+    }
   } catch (e) {
     // フォールバック: 現在のホストとポートを使用
     API = `${window.location.protocol}//${window.location.host}/api/todos`;

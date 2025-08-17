@@ -72,15 +72,9 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
       
       const app = createApp();
       
-      // 認証なしでは401が返される
-      await request(app)
-        .get('/config')
-        .expect(401);
-      
-      // 正しい認証情報では200が返される
+      // /config エンドポイントは認証不要で200が返される
       const response = await request(app)
         .get('/config')
-        .auth('admin', 'test-password')
         .expect(200);
 
       expect(response.body).toHaveProperty('port');

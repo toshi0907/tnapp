@@ -10,22 +10,38 @@ require('dotenv').config();
 
 function createApp() {
   const app = express();
-  const BASIC_AUTH_ENABLED = (process.env.BASIC_AUTH_ENABLED ?? 'true').toLowerCase() === 'true';
+  const BASIC_AUTH_ENABLED = process.env.BASIC_AUTH_ENABLED !== 'false';
 
   // Swagger (認証不要)
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerUiOptions));
 
-  // Basic認証（オプション）
+  // Basic認証設定（特定ルートを除外）
   if (BASIC_AUTH_ENABLED) {
-    app.use(basicAuth({
-      users: { [process.env.AUTH_USER || 'admin']: process.env.AUTH_PASSWORD || 'password123' },
-      challenge: true,
-      realm: 'Private Area - Totos App',
-      unauthorizedResponse: () => ({
-        error: 'Unauthorized',
-        message: 'Valid credentials required to access this application'
-      })
-    }));
+    app.use((req, res, next) => {
+      // 認証不要ルートをチェック
+      const publicRoutes = ['/config', '/api-docs', '/bookmark', '/todo', '/public', '/style.css', '/'];
+      const isPublicRoute = publicRoutes.some(route => {
+        if (route === '/public') {
+          return req.path.startsWith('/public/');
+        }
+        return req.path === route || req.path.startsWith(route + '/');
+      });
+      
+      if (isPublicRoute) {
+        return next(); // 認証をスキップ
+      }
+      
+      // API ルートには認証を適用
+      basicAuth({
+        users: { [process.env.AUTH_USER || 'admin']: process.env.AUTH_PASSWORD || 'password123' },
+        challenge: true,
+        realm: 'Private Area - Totos App',
+        unauthorizedResponse: () => ({
+          error: 'Unauthorized',
+          message: 'Valid credentials required to access this application'
+        })
+      })(req, res, next);
+    });
   }
 
   app.use(helmet());
