@@ -145,13 +145,25 @@ totos_app/
 │   ├── routes/
 │   │   ├── bookmarks.js            # ブックマーク関連ルーター
 │   │   └── todos.js                # TODO関連ルーター
+│   ├── createApp.js                # Express アプリケーション作成
 │   ├── initData.js                 # 初期データ作成
 │   └── server.js                   # メインサーバーファイル
+├── tests/                          # テストファイル
+│   ├── bookmarks.test.js           # ブックマーク単体テスト
+│   ├── bookmarks.e2e.test.js       # ブックマークE2Eテスト
+│   ├── basicAuthEnabled.test.js    # Basic認証テスト
+│   └── setup.js                    # テスト環境設定
+├── deploy/                         # デプロイ関連ファイル
+│   ├── deploy.sh                   # デプロイスクリプト
+│   └── nginx-tnapp.conf            # nginx設定例
 ├── data/
 │   ├── bookmarks.json              # ブックマークデータファイル
 │   └── todos.json                  # TODOデータファイル
+├── logs/                           # ログディレクトリ（PM2使用時）
 ├── .env                            # 環境変数（要作成）
 ├── .env.example                    # 環境変数テンプレート
+├── .env.production                 # 本番環境変数テンプレート
+├── ecosystem.config.js             # PM2設定ファイル
 ├── package.json                    # プロジェクト設定
 └── README.md                       # このファイル
 ```
@@ -196,6 +208,295 @@ cat data/todos.json
 - **CORS**: クロスオリジンリクエストの制御
 - **入力検証**: 必須フィールドとメールアドレス重複チェック
 - **環境変数**: 認証情報の環境変数管理
+
+## デプロイ
+
+本番環境での TN API Server のデプロイ方法について説明します。
+
+### PM2 を使用したプロセス管理
+
+#### 1. PM2 のインストール
+
+```bash
+# グローバルインストール
+npm install -g pm2
+
+# または yarn の場合
+yarn global add pm2
+```
+
+#### 2. Ecosystem ファイルの作成
+
+`ecosystem.config.js` を作成してプロセス設定を管理します：
+
+```javascript
+module.exports = {
+  apps: [{
+    name: 'tnapp-api',
+    script: 'src/server.js',
+    instances: 'max', // CPUコア数と同じ数のインスタンス
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'development',
+      PORT: 3000
+    },
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 3000,
+      BASIC_AUTH_ENABLED: 'true',
+      AUTH_USER: 'admin',
+      AUTH_PASSWORD: 'your-secure-production-password'
+    },
+    // ログ設定
+    log_file: './logs/app.log',
+    out_file: './logs/out.log',
+    error_file: './logs/error.log',
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    // 自動再起動設定
+    watch: false,
+    max_restarts: 10,
+    min_uptime: '10s',
+    max_memory_restart: '1G'
+  }]
+};
+```
+
+#### 3. PM2 でのアプリケーション管理
+
+```bash
+# 本番環境でアプリケーション開始
+pm2 start ecosystem.config.js --env production
+
+# アプリケーションの状態確認
+pm2 status
+
+# ログの確認
+pm2 logs tnapp-api
+
+# アプリケーションの再起動
+pm2 restart tnapp-api
+
+# アプリケーションの停止
+pm2 stop tnapp-api
+
+# PM2 の起動スクリプトを生成（サーバー再起動時の自動起動）
+pm2 startup
+pm2 save
+```
+
+### nginx を使用したリバースプロキシ設定
+
+#### 1. nginx のインストール
+
+```bash
+# Ubuntu/Debian の場合
+sudo apt update
+sudo apt install nginx
+
+# CentOS/RHEL の場合
+sudo yum install nginx
+# または
+sudo dnf install nginx
+```
+
+#### 2. nginx 設定ファイル
+
+`/etc/nginx/sites-available/tnapp` を作成：
+
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    # ログ設定
+    access_log /var/log/nginx/tnapp_access.log;
+    error_log /var/log/nginx/tnapp_error.log;
+
+    # PM2で起動したアプリケーションへのプロキシ
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        # タイムアウト設定
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # 静的ファイルの直接配信（オプション）
+    location /public/ {
+        proxy_pass http://localhost:3000/public/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+}
+```
+
+#### 3. SSL/HTTPS 設定（推奨）
+
+Let's Encrypt を使用した SSL 設定：
+
+```bash
+# Certbot のインストール
+sudo apt install certbot python3-certbot-nginx
+
+# SSL 証明書の取得
+sudo certbot --nginx -d your-domain.com
+
+# 自動更新の設定
+sudo crontab -e
+# 以下の行を追加:
+# 0 12 * * * /usr/bin/certbot renew --quiet
+```
+
+#### 4. nginx 設定の有効化
+
+```bash
+# 設定ファイルのシンボリックリンク作成
+sudo ln -s /etc/nginx/sites-available/tnapp /etc/nginx/sites-enabled/
+
+# 設定ファイルのテスト
+sudo nginx -t
+
+# nginx の再起動
+sudo systemctl restart nginx
+
+# nginx の自動起動設定
+sudo systemctl enable nginx
+```
+
+### Basic認証に関する重要な注意点
+
+このアプリケーションは独自の Basic認証を実装していますが、nginx 側でも Basic認証を設定することができます。**両方を同時に有効にすると二重認証となり、ユーザビリティが低下します。**
+
+#### オプション 1: アプリケーション側の Basic認証を使用（推奨）
+
+```bash
+# .env ファイル
+BASIC_AUTH_ENABLED=true
+AUTH_USER=admin
+AUTH_PASSWORD=your-secure-password
+```
+
+nginx 設定では Basic認証を設定しません。
+
+#### オプション 2: nginx 側で Basic認証を実装
+
+アプリケーション側の Basic認証を無効にし、nginx で認証を行う場合：
+
+```bash
+# .env ファイル
+BASIC_AUTH_ENABLED=false
+```
+
+nginx 設定に認証を追加：
+
+```nginx
+server {
+    # ... 既存の設定 ...
+
+    # Basic認証の設定
+    auth_basic "Restricted Access";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
+    location / {
+        # ... プロキシ設定 ...
+    }
+}
+```
+
+htpasswd ファイルの作成：
+
+```bash
+# htpasswd ツールのインストール
+sudo apt install apache2-utils
+
+# パスワードファイルの作成
+sudo htpasswd -c /etc/nginx/.htpasswd admin
+
+# ファイルの権限設定
+sudo chmod 644 /etc/nginx/.htpasswd
+```
+
+#### 推奨設定
+
+- **開発環境**: アプリケーション側の Basic認証を使用
+- **本番環境**: nginx 側での Basic認証 + HTTPS を推奨
+  - より高いセキュリティ
+  - アプリケーション側の負荷軽減
+  - nginx のアクセスログでの認証状況確認が容易
+
+### 環境変数の管理
+
+本番環境では機密情報を適切に管理してください：
+
+```bash
+# .env ファイルの権限設定
+chmod 600 .env
+
+# ファイルの所有者をアプリケーション実行ユーザーに設定
+sudo chown tnapp:tnapp .env
+```
+
+### ログとモニタリング
+
+#### PM2 ログ
+
+```bash
+# ログディレクトリの作成
+mkdir -p logs
+
+# ログローテーション設定
+pm2 install pm2-logrotate
+pm2 set pm2-logrotate:max_size 10M
+pm2 set pm2-logrotate:retain 30
+```
+
+#### nginx ログ
+
+```bash
+# アクセスログの確認
+sudo tail -f /var/log/nginx/tnapp_access.log
+
+# エラーログの確認
+sudo tail -f /var/log/nginx/tnapp_error.log
+```
+
+### ファイアウォール設定
+
+```bash
+# ufw を使用した場合
+sudo ufw allow 22/tcp    # SSH
+sudo ufw allow 80/tcp    # HTTP
+sudo ufw allow 443/tcp   # HTTPS
+sudo ufw enable
+
+# iptables を使用した場合
+sudo iptables -A INPUT -p tcp --dport 22 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT
+```
+
+### デプロイチェックリスト
+
+- [ ] PM2 ecosystem.config.js の設定
+- [ ] 本番用 .env ファイルの作成と権限設定
+- [ ] nginx 設定ファイルの作成
+- [ ] SSL証明書の設定（Let's Encrypt）
+- [ ] Basic認証の設定（nginx または アプリケーション）
+- [ ] ファイアウォール設定
+- [ ] ログディレクトリの作成
+- [ ] PM2 自動起動設定
+- [ ] nginx 自動起動設定
+- [ ] データディレクトリの権限設定
+- [ ] 定期的なバックアップ設定
 
 ## 技術スタック
 
