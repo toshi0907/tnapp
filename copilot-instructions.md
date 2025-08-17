@@ -1,12 +1,20 @@
-# Totos API Server - GitHub Copilot Instructions
+# TN API Server - GitHub Copilot Instructions
 
 ## プロジェクト概要
 
-Node.js + Express.jsで構築されたRESTful APIサーバー。
+Node.js + Express.jsで構築されたシンプルなRESTful APIサーバー。
 
 ### 機能
-- ブックマーク管理
-- TODO管理
+- Express.js ベースのRESTful API
+- **Basic認証**によるアクセス制御
+- **JSONファイル永続化**によるデータ保存
+- CORS サポート
+- セキュリティヘッダー（Helmet）
+- 環境変数管理（dotenv）
+- ヘルスチェックエンドポイント
+- **ブックマーク管理API**（CRUD操作、検索、カテゴリ・タグ機能対応）
+- **TODO管理API**（CRUD操作、優先度・カテゴリ・タグ機能対応）
+- **Swagger UI API仕様書**（インタラクティブなAPI仕様書）
 
 ## 技術スタック
 
@@ -22,20 +30,29 @@ Node.js + Express.jsで構築されたRESTful APIサーバー。
 
 ### ディレクトリ構造
 ```
-src/
-├── config/          # 設定ファイル (Swagger等)
-├── database/        # データアクセス層 (JSONストレージ)
-├── routes/          # APIルーター
-└── server.js        # メインサーバーファイル
-
-tests/
-├── helpers/         # テストユーティリティ
-├── *.test.js        # 単体テスト
-└── *.e2e.test.js    # E2Eテスト
-
-data/
-├── bookmarks.json   # ブックマークデータ
-└── todos.json       # TODOデータ
+tnapp/
+├── src/
+│   ├── config/
+│   │   └── swagger.js              # Swagger UI設定
+│   ├── database/
+│   │   ├── bookmarkStorage.js      # ブックマークデータ永続化クラス
+│   │   └── todoStorage.js          # TODOデータ永続化クラス
+│   ├── routes/
+│   │   ├── bookmarks.js            # ブックマーク関連ルーター
+│   │   └── todos.js                # TODO関連ルーター
+│   ├── initData.js                 # 初期データ作成
+│   └── server.js                   # メインサーバーファイル
+├── data/
+│   ├── bookmarks.json              # ブックマークデータファイル
+│   └── todos.json                  # TODOデータファイル
+├── tests/
+│   ├── helpers/                    # テストユーティリティ
+│   ├── *.test.js                   # 単体テスト
+│   └── *.e2e.test.js              # E2Eテスト
+├── .env                            # 環境変数（要作成）
+├── .env.example                    # 環境変数テンプレート
+├── package.json                    # プロジェクト設定
+└── README.md                       # プロジェクト説明
 ```
 
 ### データアクセスパターン
@@ -77,6 +94,8 @@ data/
 
 ### セキュリティ
 - 全エンドポイントにBasic認証必須（Swagger UIとhealthcheckは例外）
+- 環境変数での認証設定: `AUTH_USER`, `AUTH_PASSWORD`
+- Basic認証の有効/無効切り替え: `BASIC_AUTH_ENABLED` (true/false)
 - 入力値の適切なバリデーション
 - URL形式の検証（new URL()使用）
 - Helmetによるセキュリティヘッダー設定
@@ -331,6 +350,35 @@ if (!title || !url) {
 }
 ```
 
+## API エンドポイント
+
+### 主要エンドポイント一覧
+
+#### システム
+- `GET /health` - ヘルスチェック
+- `GET /api/hello` - テスト用エンドポイント
+
+#### ブックマーク管理
+- `GET /api/bookmarks` - ブックマーク一覧取得（検索・フィルタ対応）
+- `POST /api/bookmarks` - 新規ブックマーク作成
+- `GET /api/bookmarks/:id` - 特定ブックマーク取得
+- `PUT /api/bookmarks/:id` - ブックマーク更新
+- `DELETE /api/bookmarks/:id` - ブックマーク削除
+- `GET /api/bookmarks/meta/*` - メタデータ取得（カテゴリ・タグ・統計）
+
+#### TODO管理
+- `GET /api/todos` - TODO一覧取得（フィルタ対応）
+- `POST /api/todos` - 新規TODO作成
+- `GET /api/todos/:id` - 特定TODO取得
+- `PUT /api/todos/:id` - TODO更新
+- `DELETE /api/todos/:id` - TODO削除
+- `PATCH /api/todos/:id/toggle` - 完了状態切り替え
+- `GET /api/todos/meta/*` - メタデータ取得（カテゴリ・タグ・統計）
+
+### API仕様書
+- **Swagger UI**: http://localhost:3000/api-docs で詳細なAPI仕様を確認可能
+- **インタラクティブテスト**: Basic認証設定の上、ブラウザからAPIテスト実行可能
+
 ## 開発環境
 
 ### 必須コマンド
@@ -338,6 +386,22 @@ if (!title || !url) {
 - `npm test`: 全テスト実行
 - `npm run test:watch`: テスト監視モード
 - `npm start`: 本番サーバー起動
+- `npm run init-data`: 初期データの生成
+
+### 環境設定
+プロジェクト初回セットアップ時の手順:
+1. `npm install` - 依存関係インストール
+2. `cp .env.example .env` - 環境変数ファイル作成
+3. `.env`ファイルで認証情報を設定:
+   ```bash
+   PORT=3000
+   NODE_ENV=development
+   AUTH_USER=admin
+   AUTH_PASSWORD=your-secure-password
+   BASIC_AUTH_ENABLED=true
+   ```
+4. `npm run init-data` - 初期データ生成
+5. `npm run dev` - 開発サーバー起動
 
 ### 開発フロー
 1. 機能要件定義
