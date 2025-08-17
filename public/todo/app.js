@@ -35,6 +35,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (t) setTimeout(() => { if (msg.textContent === t) msg.textContent = ''; }, 2500);
   }
 
+  async function toggleTodo(todoId) {
+    try {
+      const res = await fetch(`${API}/${todoId}/toggle`, {
+        method: 'PATCH'
+      });
+      if (!res.ok) throw new Error('Failed to toggle todo');
+      setMsg('Todo status updated!');
+      loadTodos(); // リロードして状態を更新
+    } catch (e) {
+      setMsg(e.message, false);
+    }
+  }
+
   async function loadTodos() {
     console.log('Loading todos...');
     list.innerHTML = '<li>Loading...</li>';
@@ -47,9 +60,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         todos.forEach(todo => {
           const li = document.createElement('li');
           li.textContent = todo.title || todo.task; // titleまたはtaskフィールドを使用
+          li.style.cursor = 'pointer';
+          li.style.userSelect = 'none';
+          li.setAttribute('data-todo-id', todo.id);
+          
           if (todo.completed) {
             li.style.textDecoration = 'line-through';
+            li.style.color = '#888';
+          } else {
+            li.style.textDecoration = 'none';
+            li.style.color = '';
           }
+          
+          // クリックで完了状態を切り替え
+          li.addEventListener('click', async () => {
+            await toggleTodo(todo.id);
+          });
+          
           list.appendChild(li);
         });
       }
