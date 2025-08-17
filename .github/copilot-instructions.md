@@ -1,262 +1,262 @@
-# TN API Server - GitHub Copilot Instructions
+# TN API Server - GitHub Copilot 指示書
 
-**ALWAYS follow these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.**
+**必ずこの指示書を最初に従い、ここに記載されている情報と一致しない予期しない情報に遭遇した場合のみ、検索やbashコマンドにフォールバックしてください。**
 
-## Working Effectively
+## 効果的な作業方法
 
-### Bootstrap and Build the Repository
-- `npm install` -- takes 45-50 seconds. NEVER CANCEL. Set timeout to 120+ seconds.
-- `cp .env.example .env` -- copy environment configuration
-- `mkdir -p data` -- create data directory for JSON storage
-- `npm run init-data` -- initialize sample data, takes 0.2 seconds
-- `npm test` -- run all tests, takes 2 seconds. NEVER CANCEL. Set timeout to 30+ seconds.
+### リポジトリのブートストラップとビルド
+- `npm install` -- 45-50秒かかります。絶対にキャンセルしないでください。タイムアウトを120秒以上に設定してください。
+- `cp .env.example .env` -- 環境設定をコピー
+- `mkdir -p data` -- JSON保存用のdataディレクトリを作成
+- `npm run init-data` -- サンプルデータを初期化、0.2秒かかります
+- `npm test` -- 全テストを実行、2秒かかります。絶対にキャンセルしないでください。タイムアウトを30秒以上に設定してください。
 
-### Development Commands
-- `npm run dev` -- start development server with nodemon (hot reload)
-- `npm start` -- start production server
-- `npm run init-data` -- reinitialize sample data if needed
-- `npm test` -- run all tests (32 tests should pass)
-- `npm run test:watch` -- run tests in watch mode
+### 開発コマンド
+- `npm run dev` -- nodemonで開発サーバーを開始（ホットリロード）
+- `npm start` -- 本番サーバーを開始
+- `npm run init-data` -- 必要に応じてサンプルデータを再初期化
+- `npm test` -- 全テストを実行（32個のテストがパスするはずです）
+- `npm run test:watch` -- テストをウォッチモードで実行
 
-### Environment Configuration
-- Copy `.env.example` to `.env` before first run
-- Default Basic Auth: `admin:your-secure-password`
-- Default port: `3000`
-- Set `BASIC_AUTH_ENABLED=false` to disable authentication (for development only)
+### 環境設定
+- 初回実行前に `.env.example` を `.env` にコピー
+- デフォルトのBasic認証: `admin:your-secure-password`
+- デフォルトポート: `3000`
+- 認証を無効にするには `BASIC_AUTH_ENABLED=false` を設定（開発時のみ）
 
-## Validation
+## 検証
 
-### ALWAYS run these validation steps after making changes:
-1. **Build validation**: `npm install` (if dependencies changed)
-2. **Test validation**: `npm test` -- all 32 tests must pass
-3. **Server validation**: Start server with `npm run dev`, verify startup message
-4. **Health check**: `curl -u admin:your-secure-password http://localhost:3000/health`
-5. **API validation**: Test at least one CRUD operation (see scenarios below)
+### 変更後は必ず以下の検証手順を実行してください：
+1. **ビルド検証**: `npm install`（依存関係が変更された場合）
+2. **テスト検証**: `npm test` -- 32個のテストが全てパスする必要があります
+3. **サーバー検証**: `npm run dev`でサーバーを起動し、起動メッセージを確認
+4. **ヘルスチェック**: `curl -u admin:your-secure-password http://localhost:3000/health`
+5. **API検証**: 少なくとも1つのCRUD操作をテスト（以下のシナリオを参照）
 
-### Manual Validation Scenarios
-**CRITICAL**: Always test actual functionality after making changes. Starting and stopping the server is NOT sufficient.
+### 手動検証シナリオ
+**重要**: 変更後は実際の機能を必ずテストしてください。サーバーの起動と停止だけでは不十分です。
 
-#### Complete Bookmark Workflow Test
+#### 完全なブックマークワークフローテスト
 ```bash
-# 1. Start server
+# 1. サーバー起動
 npm run dev
 
-# 2. Health check
+# 2. ヘルスチェック
 curl -u admin:your-secure-password http://localhost:3000/health
 
-# 3. Create bookmark
+# 3. ブックマーク作成
 curl -u admin:your-secure-password \
   -H "Content-Type: application/json" \
   -d '{"title":"Test Bookmark","url":"https://test-unique.example.com","description":"Test","tags":["test"],"category":"testing"}' \
   -X POST http://localhost:3000/api/bookmarks
 
-# 4. List bookmarks
+# 4. ブックマーク一覧
 curl -u admin:your-secure-password http://localhost:3000/api/bookmarks
 
-# 5. Update bookmark (use ID from create response)
+# 5. ブックマーク更新（作成レスポンスのIDを使用）
 curl -u admin:your-secure-password \
   -H "Content-Type: application/json" \
   -d '{"title":"Updated Test","description":"Updated description"}' \
   -X PUT http://localhost:3000/api/bookmarks/{BOOKMARK_ID}
 
-# 6. Delete bookmark
+# 6. ブックマーク削除
 curl -u admin:your-secure-password -X DELETE http://localhost:3000/api/bookmarks/{BOOKMARK_ID}
 ```
 
-#### TODO Workflow Test
+#### TODOワークフローテスト
 ```bash
-# Create todo
+# todo作成
 curl -u admin:your-secure-password \
   -H "Content-Type: application/json" \
   -d '{"title":"Test TODO","description":"Test description","priority":"high","category":"test"}' \
   -X POST http://localhost:3000/api/todos
 
-# List todos
+# todo一覧
 curl -u admin:your-secure-password http://localhost:3000/api/todos
 
-# Mark as completed (use ID from response)
+# 完了としてマーク（レスポンスのIDを使用）
 curl -u admin:your-secure-password \
   -H "Content-Type: application/json" \
   -d '{"completed":true}' \
   -X PUT http://localhost:3000/api/todos/{TODO_ID}
 ```
 
-### Swagger UI Validation
-- Access http://localhost:3000/api-docs (no authentication required)
-- Verify interactive API documentation loads properly
-- Test API endpoints directly from Swagger UI
+### Swagger UI検証
+- http://localhost:3000/api-docs にアクセス（認証不要）
+- インタラクティブAPIドキュメントが正しく読み込まれることを確認
+- Swagger UIから直接APIエンドポイントをテスト
 
-## Timing Expectations
+## 実行時間の期待値
 
-**CRITICAL**: NEVER CANCEL builds or tests. Set appropriate timeouts.
+**重要**: ビルドやテストを絶対にキャンセルしないでください。適切なタイムアウトを設定してください。
 
-- **Dependencies**: `npm install` takes 45-50 seconds. Set timeout to 120+ seconds.
-- **Tests**: `npm test` takes 2 seconds. Set timeout to 30+ seconds for safety.
-- **Data init**: `npm run init-data` takes 0.2 seconds. Set timeout to 30+ seconds.
-- **Server startup**: Both `npm run dev` and `npm start` start immediately (<3 seconds)
+- **依存関係**: `npm install` は45-50秒かかります。タイムアウトを120秒以上に設定してください。
+- **テスト**: `npm test` は2秒かかります。安全のためタイムアウトを30秒以上に設定してください。
+- **データ初期化**: `npm run init-data` は0.2秒かかります。タイムアウトを30秒以上に設定してください。
+- **サーバー起動**: `npm run dev` と `npm start` は即座に起動します（3秒以内）
 
-## Project Structure
+## プロジェクト構造
 
-### Repository Root
+### リポジトリルート
 ```
 tnapp/
-├── .env.example           # Environment variables template
-├── .gitignore             # Git ignore rules
-├── README.md              # Project documentation
-├── copilot-instructions.md # Existing project-specific instructions
-├── package.json           # Dependencies and scripts
-├── package-lock.json      # Lockfile
-├── tnapp.code-workspace   # VS Code workspace
-├── src/                   # Application source code
-├── tests/                 # Test files
-├── public/                # Static web files
-└── data/                  # JSON data files (created after init-data)
+├── .env.example           # 環境変数テンプレート
+├── .gitignore             # Git除外ルール
+├── README.md              # プロジェクトドキュメント
+├── copilot-instructions.md # 既存のプロジェクト固有の指示書
+├── package.json           # 依存関係とスクリプト
+├── package-lock.json      # ロックファイル
+├── tnapp.code-workspace   # VS Codeワークスペース
+├── src/                   # アプリケーションソースコード
+├── tests/                 # テストファイル
+├── public/                # 静的Webファイル
+└── data/                  # JSONデータファイル（init-data後に作成）
 ```
 
-### Source Code Structure
+### ソースコード構造
 ```
 src/
 ├── config/
-│   └── swagger.js         # Swagger UI configuration
+│   └── swagger.js         # Swagger UI設定
 ├── database/
-│   ├── bookmarkStorage.js # Bookmark data persistence
-│   └── todoStorage.js     # TODO data persistence  
+│   ├── bookmarkStorage.js # ブックマークデータ永続化
+│   └── todoStorage.js     # TODOデータ永続化
 ├── routes/
-│   ├── bookmarks.js       # Bookmark API routes
-│   └── todos.js           # TODO API routes
-├── createApp.js           # Express app factory
-├── initData.js            # Sample data initialization
-└── server.js              # Main server entry point
+│   ├── bookmarks.js       # ブックマークAPIルート
+│   └── todos.js           # TODO APIルート
+├── createApp.js           # Expressアプリファクトリー
+├── initData.js            # サンプルデータ初期化
+└── server.js              # メインサーバーエントリーポイント
 ```
 
-### Key API Endpoints
-- `GET /health` -- health check with database statistics
-- `GET /api-docs` -- Swagger UI documentation (no auth required)
-- `GET /api/bookmarks` -- list all bookmarks
-- `POST /api/bookmarks` -- create bookmark
-- `GET /api/bookmarks/:id` -- get specific bookmark
-- `PUT /api/bookmarks/:id` -- update bookmark
-- `DELETE /api/bookmarks/:id` -- delete bookmark
-- `GET /api/todos` -- list all todos
-- `POST /api/todos` -- create todo
-- `PUT /api/todos/:id` -- update todo
-- `DELETE /api/todos/:id` -- delete todo
+### 主要APIエンドポイント
+- `GET /health` -- データベース統計付きヘルスチェック
+- `GET /api-docs` -- Swagger UIドキュメント（認証不要）
+- `GET /api/bookmarks` -- 全ブックマーク一覧
+- `POST /api/bookmarks` -- ブックマーク作成
+- `GET /api/bookmarks/:id` -- 特定ブックマーク取得
+- `PUT /api/bookmarks/:id` -- ブックマーク更新
+- `DELETE /api/bookmarks/:id` -- ブックマーク削除
+- `GET /api/todos` -- 全todo一覧
+- `POST /api/todos` -- todo作成
+- `PUT /api/todos/:id` -- todo更新
+- `DELETE /api/todos/:id` -- todo削除
 
-## Common Tasks
+## 一般的なタスク
 
-### After Making Code Changes
-1. **ALWAYS** run `npm test` to ensure tests pass
-2. **ALWAYS** start the server and test basic functionality
-3. **ALWAYS** test the specific API endpoints you modified
-4. Check console for any error messages during startup
+### コード変更後
+1. **必ず** `npm test` を実行してテストがパスすることを確認
+2. **必ず** サーバーを起動して基本機能をテスト
+3. **必ず** 変更した特定のAPIエンドポイントをテスト
+4. 起動時のコンソールでエラーメッセージがないかチェック
 
-### When Modifying API Routes
-1. Update the route handler in `src/routes/`
-2. Update or add Swagger JSDoc comments for documentation
-3. Add or update tests in `tests/`
-4. Run `npm test` to verify tests pass
-5. Test the endpoint manually with curl
-6. Verify Swagger UI documentation updates correctly
+### APIルート変更時
+1. `src/routes/` のルートハンドラーを更新
+2. ドキュメント用のSwagger JSDocコメントを更新または追加
+3. `tests/` のテストを追加または更新
+4. `npm test` を実行してテストがパスすることを確認
+5. curlでエンドポイントを手動テスト
+6. Swagger UIドキュメントが正しく更新されることを確認
 
-### When Modifying Data Models
-1. Update storage classes in `src/database/`
-2. Update API routes that use the modified data
-3. Update or add tests for the new functionality
-4. Run `npm run init-data` to reset test data if needed
-5. Test complete CRUD workflows manually
+### データモデル変更時
+1. `src/database/` のストレージクラスを更新
+2. 変更されたデータを使用するAPIルートを更新
+3. 新機能用のテストを更新または追加
+4. 必要に応じて `npm run init-data` でテストデータをリセット
+5. 完全なCRUDワークフローを手動テスト
 
-## Technology Stack
+## 技術スタック
 
-- **Node.js**: JavaScript runtime
-- **Express.js**: Web framework
-- **express-basic-auth**: Authentication middleware
-- **helmet**: Security headers
-- **cors**: Cross-origin request handling
-- **dotenv**: Environment variable management
-- **swagger-jsdoc**: API documentation generation
-- **swagger-ui-express**: Interactive API documentation
-- **Jest**: Testing framework
-- **supertest**: HTTP testing
-- **nodemon**: Development auto-reload
+- **Node.js**: JavaScript実行環境
+- **Express.js**: Webフレームワーク
+- **express-basic-auth**: 認証ミドルウェア
+- **helmet**: セキュリティヘッダー
+- **cors**: クロスオリジンリクエスト処理
+- **dotenv**: 環境変数管理
+- **swagger-jsdoc**: APIドキュメント生成
+- **swagger-ui-express**: インタラクティブAPIドキュメント
+- **Jest**: テストフレームワーク
+- **supertest**: HTTPテスト
+- **nodemon**: 開発時自動リロード
 
-## Authentication
+## 認証
 
-- **Basic Authentication** protects all API endpoints (except `/api-docs`)
-- Default credentials: `admin:your-secure-password` (configurable via `.env`)
-- Can be disabled by setting `BASIC_AUTH_ENABLED=false` in `.env`
-- **NEVER** commit actual credentials to repository
+- **Basic認証** が全APIエンドポイントを保護（`/api-docs` 除く）
+- デフォルト認証情報: `admin:your-secure-password`（`.env` で設定可能）
+- `.env` で `BASIC_AUTH_ENABLED=false` を設定して無効化可能
+- **絶対に** 実際の認証情報をリポジトリにコミットしない
 
-## Data Storage
+## データ保存
 
-- Uses **JSON file storage** in `data/` directory
-- **bookmarks.json**: Bookmark data
-- **todos.json**: TODO data
-- Data persists between server restarts
-- Use `npm run init-data` to reset to sample data
+- `data/` ディレクトリで **JSONファイル保存** を使用
+- **bookmarks.json**: ブックマークデータ
+- **todos.json**: TODOデータ
+- データはサーバー再起動時も永続化
+- `npm run init-data` でサンプルデータにリセット
 
-## Development Guidelines
+## 開発ガイドライン
 
-### Error Handling
-- All API endpoints return consistent error format: `{ error: "message" }`
-- Use appropriate HTTP status codes (400, 404, 409, 500)
-- Log server errors to console
+### エラーハンドリング
+- 全APIエンドポイントは一貫したエラー形式を返す: `{ error: "message" }`
+- 適切なHTTPステータスコード（400、404、409、500）を使用
+- サーバーエラーをコンソールにログ出力
 
-### Testing
-- Unit tests mock database operations
-- E2E tests use actual server and file system
-- Tests are in `tests/` directory with `.test.js` extension
-- Use descriptive test names in Japanese (matching existing style)
-- All tests must pass before committing changes
+### テスト
+- 単体テストはデータベース操作をモック
+- E2Eテストは実際のサーバーとファイルシステムを使用
+- テストは `tests/` ディレクトリで `.test.js` 拡張子
+- 日本語で説明的なテスト名を使用（既存スタイルに合わせる）
+- 変更をコミットする前に全テストがパスする必要がある
 
-### Code Style
-- Follow existing JavaScript patterns in the codebase
-- Use async/await for asynchronous operations
-- Include comprehensive error handling
-- Add Swagger JSDoc comments for all API endpoints
+### コードスタイル
+- コードベースの既存のJavaScriptパターンに従う
+- 非同期操作にはasync/awaitを使用
+- 包括的なエラーハンドリングを含める
+- 全APIエンドポイントにSwagger JSDocコメントを追加
 
-## Troubleshooting
+## トラブルシューティング
 
-### Tests Failing
-- Ensure `data/` directory exists: `mkdir -p data`
-- Run `npm run init-data` to create initial data files
-- Check if server is already running on port 3000
+### テスト失敗
+- `data/` ディレクトリが存在することを確認: `mkdir -p data`
+- `npm run init-data` で初期データファイルを作成
+- ポート3000でサーバーがすでに実行されていないかチェック
 
-### Server Won't Start
-- Verify `.env` file exists: `cp .env.example .env`
-- Check if port 3000 is available
-- Ensure all dependencies are installed: `npm install`
+### サーバーが起動しない
+- `.env` ファイルが存在することを確認: `cp .env.example .env`
+- ポート3000が利用可能かチェック
+- 全依存関係がインストールされていることを確認: `npm install`
 
-### API Returns 401 Unauthorized
-- Check Basic Auth credentials in `.env` file
-- Use correct format: `curl -u username:password`
-- Verify `BASIC_AUTH_ENABLED=true` in `.env`
+### API が 401 Unauthorized を返す
+- `.env` ファイルのBasic認証情報をチェック
+- 正しい形式を使用: `curl -u username:password`
+- `.env` で `BASIC_AUTH_ENABLED=true` であることを確認
 
-### Data Not Persisting
-- Ensure `data/` directory exists and is writable
-- Check for errors in console output
-- Verify JSON files are not corrupted
+### データが永続化されない
+- `data/` ディレクトリが存在し書き込み可能であることを確認
+- コンソール出力でエラーをチェック
+- JSONファイルが破損していないか確認
 
-## Quick Reference Commands
+## クイックリファレンスコマンド
 
 ```bash
-# Complete setup from fresh clone
+# 新規クローンからの完全セットアップ
 npm install
 cp .env.example .env
 mkdir -p data
 npm run init-data
 
-# Development workflow  
-npm run dev                 # Start dev server
-npm test                    # Run tests
-npm run test:watch          # Watch mode tests
+# 開発ワークフロー
+npm run dev                 # 開発サーバー起動
+npm test                    # テスト実行
+npm run test:watch          # ウォッチモードテスト
 
-# Production
-npm start                   # Start production server
+# 本番
+npm start                   # 本番サーバー起動
 
-# Health check
+# ヘルスチェック
 curl -u admin:your-secure-password http://localhost:3000/health
 
-# Test API
+# API テスト
 curl -u admin:your-secure-password http://localhost:3000/api/bookmarks
 curl -u admin:your-secure-password http://localhost:3000/api/todos
 ```
