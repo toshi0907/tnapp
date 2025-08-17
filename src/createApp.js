@@ -60,9 +60,26 @@ function createApp() {
     }
   });
 
+  // 設定情報エンドポイント（認証不要）
+  app.get('/config', (req, res) => {
+    res.json({
+      port: process.env.PORT || 3000,
+      authEnabled: BASIC_AUTH_ENABLED
+    });
+  });
+
   // 静的ファイル配信
   const publicDir = path.join(__dirname, '..', 'public');
   app.use('/public', express.static(publicDir));
+  
+  // フロントエンドページのルーティング
+  app.get('/bookmark', (req, res) => {
+    res.sendFile(path.join(publicDir, 'bookmark', 'index.html'));
+  });
+  
+  app.get('/todo', (req, res) => {
+    res.sendFile(path.join(publicDir, 'todo', 'index.html'));
+  });
 
   // ルーター
   app.use('/api/bookmarks', bookmarkRouter);

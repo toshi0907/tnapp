@@ -1,8 +1,20 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('bookmark-form');
   const list = document.getElementById('list');
   const msg = document.getElementById('msg');
-  const API = 'http://localhost:3000/api/bookmarks';
+  
+  // 設定情報を動的に取得
+  let API;
+  try {
+    const configRes = await fetch('/config');
+    const config = await configRes.json();
+    const currentHost = window.location.hostname;
+    const currentPort = config.port;
+    API = `http://${currentHost}:${currentPort}/api/bookmarks`;
+  } catch (e) {
+    // フォールバック: 現在のホストとポートを使用
+    API = `${window.location.protocol}//${window.location.host}/api/bookmarks`;
+  }
 
   function setMsg(t, ok=true){
     msg.textContent = t;

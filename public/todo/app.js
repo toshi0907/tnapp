@@ -1,9 +1,21 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('todo-form');
   const list = document.getElementById('list');
   const msg = document.getElementById('msg');
   const taskInput = document.getElementById('task');
-  const API = 'http://localhost:3000/api/todos';
+  
+  // 設定情報を動的に取得
+  let API;
+  try {
+    const configRes = await fetch('/config');
+    const config = await configRes.json();
+    const currentHost = window.location.hostname;
+    const currentPort = config.port;
+    API = `http://${currentHost}:${currentPort}/api/todos`;
+  } catch (e) {
+    // フォールバック: 現在のホストとポートを使用
+    API = `${window.location.protocol}//${window.location.host}/api/todos`;
+  }
 
   function setMsg(t, ok = true) {
     msg.textContent = t;
