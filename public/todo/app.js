@@ -3,6 +3,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const listContainer = document.getElementById('list-container');
   const msg = document.getElementById('msg');
   const taskInput = document.getElementById('task');
+  const descriptionInput = document.getElementById('description');
+  const prioritySelect = document.getElementById('priority');
+  const categorySelectForm = document.getElementById('category-select');
+  const dueDateInput = document.getElementById('due-date');
+  const tagsInput = document.getElementById('tags');
   const categoryFilter = document.getElementById('category-filter');
   const sortSelect = document.getElementById('sort-select');
   const groupByCategory = document.getElementById('group-by-category');
@@ -65,6 +70,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         option.value = category;
         option.textContent = category.charAt(0).toUpperCase() + category.slice(1);
         categoryFilter.appendChild(option);
+      });
+      
+      // 登録フォームのカテゴリ選択肢も更新
+      categorySelectForm.innerHTML = '<option value="">No Category</option>';
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+        categorySelectForm.appendChild(option);
       });
     } catch (e) {
       console.error('Error loading categories:', e);
@@ -254,14 +268,57 @@ document.addEventListener('DOMContentLoaded', async () => {
       setMsg('Task cannot be empty', false);
       return;
     }
+    
+    // フォームからデータを収集
+    const todoData = {
+      title: task
+    };
+    
+    // オプショナルフィールドを追加（空でない場合のみ）
+    const description = descriptionInput.value.trim();
+    if (description) {
+      todoData.description = description;
+    }
+    
+    const priority = prioritySelect.value;
+    if (priority) {
+      todoData.priority = priority;
+    }
+    
+    const category = categorySelectForm.value;
+    if (category) {
+      todoData.category = category;
+    }
+    
+    const dueDate = dueDateInput.value;
+    if (dueDate) {
+      todoData.dueDate = new Date(dueDate).toISOString();
+    }
+    
+    const tags = tagsInput.value.trim();
+    if (tags) {
+      todoData.tags = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+    }
+    
     try {
       const res = await fetch(API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: task }), // titleフィールドを使用
+        body: JSON.stringify(todoData),
       });
-      if (!res.ok) throw new Error('Failed to add todo');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to add todo');
+      }
+      
+      // フォームをリセット
       taskInput.value = '';
+      descriptionInput.value = '';
+      prioritySelect.value = '';
+      categorySelectForm.value = '';
+      dueDateInput.value = '';
+      tagsInput.value = '';
+      
       setMsg('Todo added successfully!');
       loadTodos();
     } catch (e) {

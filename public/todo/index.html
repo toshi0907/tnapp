@@ -36,8 +36,46 @@
 
   <h2>Register</h2>
   <form id="todo-form">
-    <input type="text" id="task" placeholder="New task" required>
-    <button type="submit">Add</button>
+    <div class="form-group">
+      <label for="task">Task Title *</label>
+      <input type="text" id="task" placeholder="New task" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea id="description" placeholder="Task description (optional)"></textarea>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label for="priority">Priority</label>
+        <select id="priority">
+          <option value="">No Priority</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="category-select">Category</label>
+        <select id="category-select">
+          <option value="">No Category</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="due-date">Due Date</label>
+      <input type="datetime-local" id="due-date">
+    </div>
+    
+    <div class="form-group">
+      <label for="tags">Tags</label>
+      <input type="text" id="tags" placeholder="Comma-separated tags (e.g., urgent, work, personal)">
+    </div>
+    
+    <button type="submit">Add Todo</button>
   </form>
 
   <div id="msg" class="msg"></div>

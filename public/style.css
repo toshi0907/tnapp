@@ -1,6 +1,57 @@
 body { font-family: system-ui, sans-serif; margin: 1.2rem; }
 h1 { font-size: 1.2rem; }
-form { margin: 1rem 0; display: flex; gap: .4rem; flex-wrap: wrap; }
+form { margin: 1rem 0; }
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: .3rem;
+  font-weight: bold;
+  font-size: .9rem;
+  color: #333;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.form-row .form-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+#todo-form input, #todo-form select, #todo-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: .3rem;
+  font-family: inherit;
+}
+
+#todo-form textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+#todo-form button[type="submit"] {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: .6rem 1.2rem;
+  border-radius: .3rem;
+  cursor: pointer;
+  font-size: .9rem;
+  font-weight: bold;
+}
+
+#todo-form button[type="submit"]:hover {
+  background: #0056b3;
+}
 input, button, select { padding: .4rem .6rem; font-size: .9rem; }
 ul { padding-left: 1rem; }
 li { margin: .3rem 0; }
