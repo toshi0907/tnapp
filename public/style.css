@@ -110,6 +110,33 @@ li { margin: .3rem 0; }
 .todo-item.medium-priority { border-left-color: #ff9800; }
 .todo-item.low-priority { border-left-color: #4CAF50; }
 
+.bookmark-item {
+  padding: .5rem;
+  margin: .3rem 0;
+  border-left: 3px solid #2196F3;
+  background: #fff;
+  border-radius: .2rem;
+}
+
+.bookmark-title {
+  font-weight: bold;
+  margin-bottom: .2rem;
+}
+
+.bookmark-title a {
+  color: #1976D2;
+  text-decoration: none;
+}
+
+.bookmark-title a:hover {
+  text-decoration: underline;
+}
+
+.bookmark-meta {
+  font-size: .8rem;
+  color: #666;
+}
+
 .todo-title { font-weight: bold; }
 .todo-meta { 
   font-size: .8rem; 
