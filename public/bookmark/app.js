@@ -2,9 +2,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('bookmark-form');
   const listContainer = document.getElementById('list-container');
   const msg = document.getElementById('msg');
+  const formTitle = document.getElementById('form-title');
   const categoryFilter = document.getElementById('category-filter');
   const sortSelect = document.getElementById('sort-select');
   const categoryInputForm = document.getElementById('category-input');
+  const bookmarkIdInput = document.getElementById('bookmark-id');
+  const submitBtn = document.getElementById('submit-btn');
+  const cancelBtn = document.getElementById('cancel-btn');
   
   // 設定情報を動的に取得
   let API;
@@ -53,6 +57,57 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(t) setTimeout(()=>{ if(msg.textContent===t) msg.textContent=''; }, 2500);
   }
 
+  async function deleteBookmark(bookmarkId) {
+    if (!confirm('Are you sure you want to delete this bookmark?')) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API}/${bookmarkId}`, {
+        method: 'DELETE',
+        headers: authHeaders
+      });
+      if (!res.ok) throw new Error('Failed to delete bookmark');
+      setMsg('Bookmark deleted successfully!');
+      loadBookmarks();
+    } catch (e) {
+      setMsg(e.message, false);
+    }
+  }
+
+  function editBookmark(bookmark) {
+    // Switch to edit mode
+    formTitle.textContent = 'Edit Bookmark';
+    submitBtn.textContent = 'Update Bookmark';
+    cancelBtn.style.display = 'inline-block';
+    
+    // Populate form with bookmark data
+    bookmarkIdInput.value = bookmark.id;
+    form.title.value = bookmark.title;
+    form.url.value = bookmark.url;
+    form.description.value = bookmark.description || '';
+    categoryInputForm.value = bookmark.category || '';
+    form.tags.value = bookmark.tags ? bookmark.tags.join(', ') : '';
+    
+    // Scroll to form
+    form.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function cancelEdit() {
+    // Switch back to create mode
+    formTitle.textContent = 'Register';
+    submitBtn.textContent = 'Add';
+    cancelBtn.style.display = 'none';
+    
+    // Clear form
+    bookmarkIdInput.value = '';
+    form.title.value = '';
+    form.url.value = '';
+    form.description.value = '';
+    categoryInputForm.value = '';
+    form.tags.value = '';
+  }
+
   // カテゴリを読み込む
   async function loadCategories() {
     try {
@@ -90,6 +145,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     div.className = 'bookmark-item';
     div.setAttribute('data-bookmark-id', bookmark.id);
     
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'bookmark-content';
+    
     const title = document.createElement('div');
     title.className = 'bookmark-title';
     
@@ -115,10 +173,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     meta.textContent = metaParts.join(' | ');
     
-    div.appendChild(title);
+    contentDiv.appendChild(title);
     if (metaParts.length > 0) {
-      div.appendChild(meta);
+      contentDiv.appendChild(meta);
     }
+    
+    // Actions container
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'todo-actions';
+    
+    const editBtn = document.createElement('button');
+    editBtn.textContent = 'Edit';
+    editBtn.className = 'edit-btn';
+    editBtn.onclick = (e) => {
+      e.stopPropagation();
+      editBookmark(bookmark);
+    };
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteBookmark(bookmark.id);
+    };
+    
+    actionsDiv.appendChild(editBtn);
+    actionsDiv.appendChild(deleteBtn);
+    
+    div.appendChild(contentDiv);
+    div.appendChild(actionsDiv);
     
     return div;
   }
@@ -230,6 +314,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // タグを配列に変換
     const tags = tagsInput ? tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
     
+    const isEditing = bookmarkIdInput.value.trim() !== '';
+    
     try {
       const bookmarkData = {
         title,
@@ -239,19 +325,38 @@ document.addEventListener('DOMContentLoaded', async () => {
         tags
       };
       
-      const res = await fetch(API, { 
-        method: 'POST', 
-        headers: { 
-          'Content-Type': 'application/json',
-          ...authHeaders
-        }, 
-        body: JSON.stringify(bookmarkData) 
-      });
+      let res;
+      if (isEditing) {
+        // Update existing bookmark
+        res = await fetch(`${API}/${bookmarkIdInput.value}`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...authHeaders
+          },
+          body: JSON.stringify(bookmarkData),
+        });
+      } else {
+        // Create new bookmark
+        res = await fetch(API, { 
+          method: 'POST', 
+          headers: { 
+            'Content-Type': 'application/json',
+            ...authHeaders
+          }, 
+          body: JSON.stringify(bookmarkData) 
+        });
+      }
       
-      if (!res.ok) throw new Error('Create failed');
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `Failed to ${isEditing ? 'update' : 'add'} bookmark`);
+      }
       
-      form.reset();
-      setMsg('Added');
+      // Reset form
+      cancelEdit();
+      
+      setMsg(`Bookmark ${isEditing ? 'updated' : 'added'} successfully!`);
       
       // カテゴリが新しい場合はカテゴリリストを再読み込み
       await loadCategories();
@@ -260,6 +365,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       setMsg(e.message, false);
     }
   });
+
+  // Cancel button handler
+  cancelBtn.addEventListener('click', cancelEdit);
+
+  // フィルター/ソート変更時にリロード
+  categoryFilter.addEventListener('change', loadBookmarks);
+  sortSelect.addEventListener('change', loadBookmarks);
 
   // 初期化
   await loadCategories();

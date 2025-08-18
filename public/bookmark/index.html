@@ -29,8 +29,9 @@
   <div id="list-container"></div>
 
 
-  <h2>Register</h2>
+  <h2 id="form-title">Register</h2>
   <form id="bookmark-form">
+    <input type="hidden" id="bookmark-id" value="">
     <div class="form-group">
       <label for="title">Title *</label>
       <input id="title" name="title" placeholder="Title" required />
@@ -60,7 +61,8 @@
       <input type="text" id="tags" placeholder="Comma-separated tags (e.g., useful, work, reference)">
     </div>
     
-    <button type="submit">Add</button>
+    <button type="submit" id="submit-btn">Add</button>
+    <button type="button" id="cancel-btn" style="display: none;">Cancel</button>
   </form>
 
   <div id="msg" class="msg"></div>
