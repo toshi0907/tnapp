@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const taskInput = document.getElementById('task');
   const descriptionInput = document.getElementById('description');
   const prioritySelect = document.getElementById('priority');
-  const categorySelectForm = document.getElementById('category-select');
+  const categoryInputForm = document.getElementById('category-input');
   const dueDateInput = document.getElementById('due-date');
   const tagsInput = document.getElementById('tags');
   const todoIdInput = document.getElementById('todo-id');
@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     taskInput.value = todo.title;
     descriptionInput.value = todo.description || '';
     prioritySelect.value = todo.priority || '';
-    categorySelectForm.value = todo.category || '';
+    categoryInputForm.value = todo.category || '';
     tagsInput.value = todo.tags ? todo.tags.join(', ') : '';
     
     if (todo.dueDate) {
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     taskInput.value = '';
     descriptionInput.value = '';
     prioritySelect.value = '';
-    categorySelectForm.value = '';
+    categoryInputForm.value = '';
     dueDateInput.value = '';
     tagsInput.value = '';
   }
@@ -156,13 +156,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         categoryFilter.appendChild(option);
       });
       
-      // 登録フォームのカテゴリ選択肢も更新
-      categorySelectForm.innerHTML = '<option value="">No Category</option>';
+      // 登録フォームのカテゴリ選択肢も更新（datalistの場合）
+      const categoryDatalist = document.getElementById('category-list');
+      categoryDatalist.innerHTML = '';
       categories.forEach(category => {
         const option = document.createElement('option');
         option.value = category;
-        option.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-        categorySelectForm.appendChild(option);
+        categoryDatalist.appendChild(option);
       });
     } catch (e) {
       console.error('Error loading categories:', e);
@@ -407,7 +407,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       todoData.priority = priority;
     }
     
-    const category = categorySelectForm.value;
+    const category = categoryInputForm.value.trim();
     if (category) {
       todoData.category = category;
     }
