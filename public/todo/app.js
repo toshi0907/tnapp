@@ -2,12 +2,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('todo-form');
   const listContainer = document.getElementById('list-container');
   const msg = document.getElementById('msg');
+  const formTitle = document.getElementById('form-title');
   const taskInput = document.getElementById('task');
   const descriptionInput = document.getElementById('description');
   const prioritySelect = document.getElementById('priority');
   const categorySelectForm = document.getElementById('category-select');
   const dueDateInput = document.getElementById('due-date');
   const tagsInput = document.getElementById('tags');
+  const todoIdInput = document.getElementById('todo-id');
+  const submitBtn = document.getElementById('submit-btn');
+  const cancelBtn = document.getElementById('cancel-btn');
   const categoryFilter = document.getElementById('category-filter');
   const sortSelect = document.getElementById('sort-select');
   const groupByCategory = document.getElementById('group-by-category');
@@ -15,9 +19,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // 設定情報を動的に取得
   let API;
+  let authHeaders;
   try {
     const configRes = await fetch('/config');
     const config = await configRes.json();
+    
+    // Basic認証の設定
+    if (config.authEnabled) {
+      // Note: In a real application, these credentials should be obtained through a proper login flow
+      // For demo purposes, using the default credentials from .env
+      const username = 'admin';
+      const password = 'your-secure-password';
+      const credentials = btoa(`${username}:${password}`);
+      authHeaders = {
+        'Authorization': `Basic ${credentials}`
+      };
+    } else {
+      authHeaders = {};
+    }
     
     // 本番環境（リバースプロキシ）では現在のプロトコルとホストを使用
     // 開発環境では設定されたポートを使用
@@ -36,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (e) {
     // フォールバック: 現在のホストとポートを使用
     API = `${window.location.protocol}//${window.location.host}/api/todos`;
+    authHeaders = {};
   }
 
   function setMsg(t, ok = true) {
@@ -47,7 +67,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   async function toggleTodo(todoId) {
     try {
       const res = await fetch(`${API}/${todoId}/toggle`, {
-        method: 'PATCH'
+        method: 'PATCH',
+        headers: authHeaders
       });
       if (!res.ok) throw new Error('Failed to toggle todo');
       setMsg('Todo status updated!');
@@ -57,10 +78,72 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  async function deleteTodo(todoId) {
+    if (!confirm('Are you sure you want to delete this todo?')) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API}/${todoId}`, {
+        method: 'DELETE',
+        headers: authHeaders
+      });
+      if (!res.ok) throw new Error('Failed to delete todo');
+      setMsg('Todo deleted successfully!');
+      loadTodos();
+    } catch (e) {
+      setMsg(e.message, false);
+    }
+  }
+
+  function editTodo(todo) {
+    // Switch to edit mode
+    formTitle.textContent = 'Edit Todo';
+    submitBtn.textContent = 'Update Todo';
+    cancelBtn.style.display = 'inline-block';
+    
+    // Populate form with todo data
+    todoIdInput.value = todo.id;
+    taskInput.value = todo.title;
+    descriptionInput.value = todo.description || '';
+    prioritySelect.value = todo.priority || '';
+    categorySelectForm.value = todo.category || '';
+    tagsInput.value = todo.tags ? todo.tags.join(', ') : '';
+    
+    if (todo.dueDate) {
+      // Convert ISO string to datetime-local format
+      const date = new Date(todo.dueDate);
+      dueDateInput.value = date.toISOString().slice(0, 16);
+    } else {
+      dueDateInput.value = '';
+    }
+    
+    // Scroll to form
+    form.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function cancelEdit() {
+    // Switch back to create mode
+    formTitle.textContent = 'Register';
+    submitBtn.textContent = 'Add Todo';
+    cancelBtn.style.display = 'none';
+    
+    // Clear form
+    todoIdInput.value = '';
+    taskInput.value = '';
+    descriptionInput.value = '';
+    prioritySelect.value = '';
+    categorySelectForm.value = '';
+    dueDateInput.value = '';
+    tagsInput.value = '';
+  }
+
   // カテゴリを読み込む
   async function loadCategories() {
     try {
-      const res = await fetch(`${API}/meta/categories`);
+      const res = await fetch(`${API}/meta/categories`, {
+        headers: authHeaders
+      });
       if (!res.ok) throw new Error('Failed to load categories');
       const categories = await res.json();
       
@@ -109,6 +192,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     div.className = `todo-item ${todo.completed ? 'completed' : ''} ${todo.priority}-priority`;
     div.setAttribute('data-todo-id', todo.id);
     
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'todo-content';
+    
     const title = document.createElement('div');
     title.className = 'todo-title';
     title.textContent = todo.title;
@@ -141,13 +227,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     meta.innerHTML = metaParts.join(' | ');
     
-    div.appendChild(title);
+    contentDiv.appendChild(title);
     if (metaParts.length > 0) {
-      div.appendChild(meta);
+      contentDiv.appendChild(meta);
     }
     
-    // クリックで完了状態を切り替え
-    div.addEventListener('click', async () => {
+    // Actions container
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'todo-actions';
+    
+    const editBtn = document.createElement('button');
+    editBtn.textContent = 'Edit';
+    editBtn.className = 'edit-btn';
+    editBtn.onclick = (e) => {
+      e.stopPropagation();
+      editTodo(todo);
+    };
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      deleteTodo(todo.id);
+    };
+    
+    actionsDiv.appendChild(editBtn);
+    actionsDiv.appendChild(deleteBtn);
+    
+    div.appendChild(contentDiv);
+    div.appendChild(actionsDiv);
+    
+    // クリックで完了状態を切り替え (only on content area)
+    contentDiv.addEventListener('click', async () => {
       await toggleTodo(todo.id);
     });
     
@@ -209,7 +321,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       
       const url = params.toString() ? `${API}?${params}` : API;
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: authHeaders
+      });
       if (!res.ok) throw new Error('Failed to load todos');
       let todos = await res.json();
       
@@ -275,6 +389,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     
+    const isEditing = todoIdInput.value !== '';
+    
     // フォームからデータを収集
     const todoData = {
       title: task
@@ -307,30 +423,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     try {
-      const res = await fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(todoData),
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to add todo');
+      let res;
+      if (isEditing) {
+        // Update existing todo
+        res = await fetch(`${API}/${todoIdInput.value}`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...authHeaders
+          },
+          body: JSON.stringify(todoData),
+        });
+      } else {
+        // Create new todo
+        res = await fetch(API, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            ...authHeaders
+          },
+          body: JSON.stringify(todoData),
+        });
       }
       
-      // フォームをリセット
-      taskInput.value = '';
-      descriptionInput.value = '';
-      prioritySelect.value = '';
-      categorySelectForm.value = '';
-      dueDateInput.value = '';
-      tagsInput.value = '';
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `Failed to ${isEditing ? 'update' : 'add'} todo`);
+      }
       
-      setMsg('Todo added successfully!');
+      // Reset form
+      cancelEdit();
+      
+      setMsg(`Todo ${isEditing ? 'updated' : 'added'} successfully!`);
       loadTodos();
     } catch (e) {
       setMsg(e.message, false);
     }
   });
+
+  // Cancel button handler
+  cancelBtn.addEventListener('click', cancelEdit);
 
   // イベントリスナーを追加
   categoryFilter.addEventListener('change', loadTodos);
