@@ -13,13 +13,53 @@
   <h1>Bookmarks</h1>
 
   <h2>List</h2>
-  <ul id="list"></ul>
+  <div class="todo-controls">
+    <label for="category-filter">Category:</label>
+    <select id="category-filter">
+      <option value="">All Categories</option>
+    </select>
+    
+    <label for="sort-select">Sort by:</label>
+    <select id="sort-select">
+      <option value="default">Default</option>
+      <option value="title">Title</option>
+      <option value="category">Category</option>
+    </select>
+  </div>
+  <div id="list-container"></div>
 
 
   <h2>Register</h2>
   <form id="bookmark-form">
-    <input id="title" name="title" placeholder="Title" required />
-    <input id="url" name="url" placeholder="https://example.com" required pattern="https?://.+" />
+    <div class="form-group">
+      <label for="title">Title *</label>
+      <input id="title" name="title" placeholder="Title" required />
+    </div>
+    
+    <div class="form-group">
+      <label for="url">URL *</label>
+      <input id="url" name="url" placeholder="https://example.com" required pattern="https?://.+" />
+    </div>
+    
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" placeholder="Optional description"></textarea>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label for="category-select">Category</label>
+        <select id="category-select">
+          <option value="">No Category</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="tags">Tags</label>
+      <input type="text" id="tags" placeholder="Comma-separated tags (e.g., useful, work, reference)">
+    </div>
+    
     <button type="submit">Add</button>
   </form>
 
