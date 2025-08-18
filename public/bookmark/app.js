@@ -4,13 +4,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   const msg = document.getElementById('msg');
   const categoryFilter = document.getElementById('category-filter');
   const sortSelect = document.getElementById('sort-select');
-  const categorySelectForm = document.getElementById('category-select');
+  const categoryInputForm = document.getElementById('category-input');
   
   // 設定情報を動的に取得
   let API;
+  let authHeaders;
   try {
     const configRes = await fetch('/config');
     const config = await configRes.json();
+    
+    // Basic認証の設定
+    if (config.authEnabled) {
+      // Note: In a real application, these credentials should be obtained through a proper login flow
+      // For demo purposes, using the default credentials from .env
+      const username = 'admin';
+      const password = 'your-secure-password';
+      const credentials = btoa(`${username}:${password}`);
+      authHeaders = {
+        'Authorization': `Basic ${credentials}`
+      };
+    } else {
+      authHeaders = {};
+    }
     
     // 本番環境（リバースプロキシ）では現在のプロトコルとホストを使用
     // 開発環境では設定されたポートを使用
@@ -29,6 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (e) {
     // フォールバック: 現在のホストとポートを使用
     API = `${window.location.protocol}//${window.location.host}/api/bookmarks`;
+    authHeaders = {};
   }
 
   function setMsg(t, ok=true){
@@ -40,7 +56,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // カテゴリを読み込む
   async function loadCategories() {
     try {
-      const res = await fetch(`${API}/meta/categories`);
+      const res = await fetch(`${API}/meta/categories`, {
+        headers: authHeaders
+      });
       if (!res.ok) throw new Error('Failed to load categories');
       const categories = await res.json();
       
@@ -53,13 +71,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         categoryFilter.appendChild(option);
       });
       
-      // 登録フォームのカテゴリ選択肢も更新
-      categorySelectForm.innerHTML = '<option value="">No Category</option>';
+      // 登録フォームのカテゴリ選択肢も更新（datalistの場合）
+      const categoryDatalist = document.getElementById('category-list');
+      categoryDatalist.innerHTML = '';
       categories.forEach(category => {
         const option = document.createElement('option');
         option.value = category;
-        option.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-        categorySelectForm.appendChild(option);
+        categoryDatalist.appendChild(option);
       });
     } catch (e) {
       console.error('Error loading categories:', e);
@@ -146,7 +164,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       
       const url = params.toString() ? `${API}?${params}` : API;
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: authHeaders
+      });
       if (!res.ok) throw new Error('Failed to load bookmarks');
       let bookmarks = await res.json();
       
@@ -199,7 +219,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const title = form.title.value.trim();
     const url = form.url.value.trim();
     const description = form.description.value.trim();
-    const category = form['category-select'].value.trim();
+    const category = categoryInputForm.value.trim();
     const tagsInput = form.tags.value.trim();
     
     if (!title || !url) {
@@ -221,7 +241,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       const res = await fetch(API, { 
         method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...authHeaders
+        }, 
         body: JSON.stringify(bookmarkData) 
       });
       
