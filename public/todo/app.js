@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const categoryFilter = document.getElementById('category-filter');
   const sortSelect = document.getElementById('sort-select');
   const groupByCategory = document.getElementById('group-by-category');
+  const hideCompleted = document.getElementById('hide-completed');
   
   // 設定情報を動的に取得
   let API;
@@ -221,6 +222,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         todos = sortTodos(todos, sortSelect.value);
       }
       
+      // 完了したタスクをフィルタリング
+      if (hideCompleted.checked) {
+        todos = todos.filter(todo => !todo.completed);
+      }
+      
       listContainer.innerHTML = '';
       
       if (todos.length === 0) {
@@ -330,6 +336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   categoryFilter.addEventListener('change', loadTodos);
   sortSelect.addEventListener('change', loadTodos);
   groupByCategory.addEventListener('change', loadTodos);
+  hideCompleted.addEventListener('change', loadTodos);
 
   // 初期化
   await loadCategories();
