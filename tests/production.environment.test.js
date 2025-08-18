@@ -8,7 +8,6 @@ describe('本番環境テスト - Production Environment Tests', () => {
     // 本番環境の設定を模擬
     process.env.NODE_ENV = 'production';
     process.env.PORT = '3001';
-    process.env.BASIC_AUTH_ENABLED = 'true';
     app = createApp();
   });
 
@@ -16,7 +15,6 @@ describe('本番環境テスト - Production Environment Tests', () => {
     // 環境変数をリセット
     process.env.NODE_ENV = 'development';
     delete process.env.PORT;
-    delete process.env.BASIC_AUTH_ENABLED;
   });
 
   describe('リバースプロキシ環境での動作確認', () => {
@@ -26,7 +24,6 @@ describe('本番環境テスト - Production Environment Tests', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('port', '3001');
-      expect(response.body).toHaveProperty('authEnabled', true);
     });
 
     it('フロントエンドページが認証なしでアクセス可能', async () => {
@@ -45,32 +42,20 @@ describe('本番環境テスト - Production Environment Tests', () => {
       expect(todoResponse.text).toContain('<title>Todo List</title>');
     });
 
-    it('API エンドポイントには認証が必要', async () => {
-      // 認証なしではアクセス拒否
+    it('API エンドポイントが認証なしでアクセス可能', async () => {
+      // 認証なしでアクセス可能
       await request(app)
         .get('/api/bookmarks')
-        .expect(401);
-
-      await request(app)
-        .get('/api/todos')
-        .expect(401);
-
-      // 認証ありではアクセス可能
-      await request(app)
-        .get('/api/bookmarks')
-        .auth('admin', 'your-secure-password')
         .expect(200);
 
       await request(app)
         .get('/api/todos')
-        .auth('admin', 'your-secure-password')
         .expect(200);
     });
 
-    it('ヘルスチェックが認証付きで動作する', async () => {
+    it('ヘルスチェックが認証なしで動作する', async () => {
       const response = await request(app)
         .get('/health')
-        .auth('admin', 'your-secure-password')
         .expect(200);
 
       expect(response.body).toHaveProperty('status', 'OK');
@@ -87,7 +72,6 @@ describe('本番環境テスト - Production Environment Tests', () => {
 
       // 本番環境の設定が正しく反映されることを確認
       expect(response.body.port).toBe('3001');
-      expect(response.body.authEnabled).toBe(true);
     });
 
     it('静的ファイルのContent-Typeが正しく設定される', async () => {
@@ -121,7 +105,6 @@ describe('本番環境テスト - Production Environment Tests', () => {
         .expect(200);
 
       expect(response.body).toHaveProperty('port', '3001');
-      expect(response.body).toHaveProperty('authEnabled', true);
     });
 
     it('プロキシ経由でのAPI呼び出しが正常動作する', async () => {
@@ -129,35 +112,9 @@ describe('本番環境テスト - Production Environment Tests', () => {
         .get('/api/bookmarks')
         .set('X-Forwarded-Proto', 'https')
         .set('Host', 'app.totos97.com')
-        .auth('admin', 'your-secure-password')
         .expect(200);
 
       expect(Array.isArray(response.body)).toBe(true);
-    });
-
-    it('Basic認証がプロキシ経由でも機能する', async () => {
-      // 認証なし - 401 Unauthorized
-      await request(app)
-        .get('/api/bookmarks')
-        .set('X-Forwarded-Proto', 'https')
-        .set('Host', 'app.totos97.com')
-        .expect(401);
-
-      // 不正な認証 - 401 Unauthorized
-      await request(app)
-        .get('/api/bookmarks')
-        .set('X-Forwarded-Proto', 'https')
-        .set('Host', 'app.totos97.com')
-        .auth('wrong', 'credentials')
-        .expect(401);
-
-      // 正しい認証 - 200 OK
-      await request(app)
-        .get('/api/bookmarks')
-        .set('X-Forwarded-Proto', 'https')
-        .set('Host', 'app.totos97.com')
-        .auth('admin', 'your-secure-password')
-        .expect(200);
     });
   });
 

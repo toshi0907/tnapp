@@ -17,9 +17,7 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
     test('デフォルトポート3000での設定情報取得', async () => {
       // 環境変数を一時的にクリア
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
       delete process.env.PORT;
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -28,22 +26,18 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
         .expect(200);
 
       expect(response.body).toEqual({
-        port: 3000,
-        authEnabled: false
+        port: 3000
       });
 
       // 環境変数を復元
       if (originalPort) {
         process.env.PORT = originalPort;
       }
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
     });
 
     test('カスタムポート3005での設定情報取得', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
       process.env.PORT = '3005';
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -52,47 +46,37 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
         .expect(200);
 
       expect(response.body).toEqual({
-        port: '3005',
-        authEnabled: false
+        port: '3005'
       });
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
     });
 
-    test('Basic認証有効時の設定情報取得', async () => {
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
-      const originalUser = process.env.AUTH_USER;
-      const originalPass = process.env.AUTH_PASSWORD;
+    test('設定情報取得テスト', async () => {
+      const originalPort = process.env.PORT;
       
-      process.env.BASIC_AUTH_ENABLED = 'true';
-      process.env.AUTH_USER = 'admin';
-      process.env.AUTH_PASSWORD = 'test-password';
+      process.env.PORT = '3000';
       
       const app = createApp();
       
-      // /config エンドポイントは認証不要で200が返される
+      // /config エンドポイントで設定情報が取得できる
       const response = await request(app)
         .get('/config')
         .expect(200);
 
       expect(response.body).toHaveProperty('port');
-      expect(response.body.authEnabled).toBe(true);
 
       // 環境変数を復元
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
-      process.env.AUTH_USER = originalUser;
-      process.env.AUTH_PASSWORD = originalPass;
+      process.env.PORT = originalPort;
     });
   });
 
   describe('異なるポートでのAPI動作確認 - API Functionality on Different Ports', () => {
     test('ポート3010でのブックマークAPI動作確認', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
+      
       process.env.PORT = '3010';
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -112,14 +96,13 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
+      
     });
 
     test('ポート3020でのTODO API動作確認', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
+      
       process.env.PORT = '3020';
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -139,14 +122,13 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
+      
     });
 
     test('ポート4000でのヘルスチェック動作確認', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
+      
       process.env.PORT = '4000';
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -160,16 +142,15 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
+      
     });
   });
 
   describe('フロントエンドページルーティング - Frontend Page Routing', () => {
     test('ポート3030でのブックマークページアクセス', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
+      
       process.env.PORT = '3030';
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -182,14 +163,13 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
+      
     });
 
     test('ポート3040でのTODOページアクセス', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
+      
       process.env.PORT = '3040';
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -202,16 +182,15 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
+      
     });
   });
 
   describe('ポート設定の境界値テスト - Port Configuration Boundary Tests', () => {
     test('最小ポート番号1024での動作確認', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
+      
       process.env.PORT = '1024';
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -223,14 +202,13 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
+      
     });
 
     test('高ポート番号65530での動作確認', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
+      
       process.env.PORT = '65530';
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -242,17 +220,16 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
+      
     });
   });
 
   describe('設定変更時の一貫性テスト - Configuration Consistency Tests', () => {
     test('ポート変更後も全エンドポイントが正常動作することを確認', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
+      
       const testPort = '3999';
       process.env.PORT = testPort;
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -281,14 +258,13 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
+      
     });
 
     test('ポート変更後もCRUD操作が正常動作することを確認', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
+      
       process.env.PORT = '4001';
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -337,16 +313,15 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
+      
     });
   });
 
   describe('エラーハンドリング - Error Handling', () => {
     test('不正なポート番号文字列での設定取得', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
+      
       process.env.PORT = 'invalid-port';
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -359,14 +334,13 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
+      
     });
 
     test('空のポート番号での設定取得', async () => {
       const originalPort = process.env.PORT;
-      const originalAuth = process.env.BASIC_AUTH_ENABLED;
+      
       process.env.PORT = '';
-      process.env.BASIC_AUTH_ENABLED = 'false'; // 認証を無効化
       
       const app = createApp();
       
@@ -379,7 +353,7 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
 
       // 環境変数を復元
       process.env.PORT = originalPort;
-      process.env.BASIC_AUTH_ENABLED = originalAuth;
+      
     });
   });
 });

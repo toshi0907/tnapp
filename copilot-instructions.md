@@ -6,7 +6,6 @@ Node.js + Express.jsで構築されたシンプルなRESTful APIサーバー。
 
 ### 機能
 - Express.js ベースのRESTful API
-- **Basic認証**によるアクセス制御
 - **JSONファイル永続化**によるデータ保存
 - CORS サポート
 - セキュリティヘッダー（Helmet）
@@ -19,7 +18,6 @@ Node.js + Express.jsで構築されたシンプルなRESTful APIサーバー。
 ## 技術スタック
 
 - **フレームワーク**: Express.js
-- **認証**: Basic認証 (express-basic-auth)
 - **データ永続化**: JSONファイル
 - **API仕様書**: Swagger UI (swagger-jsdoc, swagger-ui-express)
 - **セキュリティ**: Helmet, CORS
@@ -93,9 +91,6 @@ tnapp/
 ## 重要な制約・ルール
 
 ### セキュリティ
-- 全エンドポイントにBasic認証必須（Swagger UIとhealthcheckは例外）
-- 環境変数での認証設定: `AUTH_USER`, `AUTH_PASSWORD`
-- Basic認証の有効/無効切り替え: `BASIC_AUTH_ENABLED` (true/false)
 - 入力値の適切なバリデーション
 - URL形式の検証（new URL()使用）
 - Helmetによるセキュリティヘッダー設定
@@ -377,7 +372,7 @@ if (!title || !url) {
 
 ### API仕様書
 - **Swagger UI**: http://localhost:3000/api-docs で詳細なAPI仕様を確認可能
-- **インタラクティブテスト**: Basic認証設定の上、ブラウザからAPIテスト実行可能
+- **インタラクティブテスト**: ブラウザからAPIテスト実行可能
 
 ## 開発環境
 
@@ -392,13 +387,10 @@ if (!title || !url) {
 プロジェクト初回セットアップ時の手順:
 1. `npm install` - 依存関係インストール
 2. `cp .env.example .env` - 環境変数ファイル作成
-3. `.env`ファイルで認証情報を設定:
+3. `.env`ファイルで設定:
    ```bash
    PORT=3000
    NODE_ENV=development
-   AUTH_USER=admin
-   AUTH_PASSWORD=your-secure-password
-   BASIC_AUTH_ENABLED=true
    ```
 4. `npm run init-data` - 初期データ生成
 5. `npm run dev` - 開発サーバー起動

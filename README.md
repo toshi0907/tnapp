@@ -5,7 +5,6 @@ Node.js で構築されたシンプルなAPIサーバです。
 ## 機能
 
 - Express.js ベースのRESTful API
-- **Basic認証**によるアクセス制御
 - **JSONファイル永続化**によるデータ保存
 - CORS サポート
 - セキュリティヘッダー（Helmet）
@@ -26,7 +25,7 @@ npm install
 
 ### 2. 環境変数の設定
 
-`.env.example` を `.env` にコピーして、認証情報を設定してください。
+`.env.example` を `.env` にコピーして、必要に応じて設定を変更してください。
 
 ```bash
 cp .env.example .env
@@ -36,12 +35,6 @@ cp .env.example .env
 ```bash
 PORT=3000
 NODE_ENV=development
-
-# Basic認証の設定
-AUTH_USER=admin
-AUTH_PASSWORD=your-secure-password
-# Basic認証の有効/無効切り替え (true で有効, false で無効)
-BASIC_AUTH_ENABLED=true
 ```
 
 ### 3. サーバーの起動
@@ -56,27 +49,16 @@ npm run dev
 npm start
 ```
 
-## 認証
-
-すべてのエンドポイントは**Basic認証**で保護されています（`BASIC_AUTH_ENABLED=true` の場合）。
-`BASIC_AUTH_ENABLED=false` にすると Basic 認証は無効化され、全エンドポイントへ認証なしでアクセス可能になります。開発用以外では無効化しないでください。
-
-```bash
-# Basic認証を含むリクエスト例
-curl -u admin:your-secure-password http://localhost:3000/health
-```
-
 ## API仕様書
 
 このAPIサーバーには**Swagger UI**によるインタラクティブなAPI仕様書が提供されています。
 
 ### Swagger UI
 - **URL**: http://localhost:3000/api-docs
-- **認証**: 不要（ブラウザから直接アクセス可能）
 - **機能**: 
   - 全APIエンドポイントの詳細仕様
   - リクエスト・レスポンスの例
-  - インタラクティブなAPIテスト機能（Basic認証設定可能）
+  - インタラクティブなAPIテスト機能
   - データスキーマの詳細表示
 
 サーバー起動後、ブラウザで `http://localhost:3000/api-docs` にアクセスすると、視覚的でインタラクティブなAPI仕様書を確認できます。
@@ -126,7 +108,6 @@ curl -u admin:your-secure-password http://localhost:3000/health
 一般的なHTTPステータスコードとエラーレスポンスについては、[Swagger UI](http://localhost:3000/api-docs) で詳細を確認してください。
 
 ### 主要エラーパターン
-- **401 Unauthorized**: Basic認証が必要
 - **400 Bad Request**: バリデーションエラー、無効なデータ形式
 - **404 Not Found**: リソースが存在しない
 - **409 Conflict**: データの重複（メールアドレス、URL等）
@@ -191,17 +172,15 @@ cat data/todos.json
 
 ## セキュリティ機能
 
-- **Basic認証**: 全エンドポイントがBasic認証で保護
 - **Helmet**: セキュリティヘッダーの自動設定
 - **CORS**: クロスオリジンリクエストの制御
 - **入力検証**: 必須フィールドとメールアドレス重複チェック
-- **環境変数**: 認証情報の環境変数管理
+- **環境変数**: 設定情報の環境変数管理
 
 ## 技術スタック
 
 - **Node.js**: JavaScript実行環境
 - **Express.js**: Webアプリケーションフレームワーク
-- **express-basic-auth**: Basic認証ミドルウェア
 - **helmet**: セキュリティミドルウェア
 - **cors**: CORS設定
 - **dotenv**: 環境変数管理
