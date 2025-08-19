@@ -269,13 +269,7 @@ describe('Bookmarks API - E2E Tests', () => {
 
   describe('エラーハンドリング', () => {
     it('バリデーションエラーが適切に処理される', async () => {
-      // タイトルなし
-      await request(app)
-        .post('/api/bookmarks')
-        .send({ url: 'https://example.com' })
-        .expect(400);
-
-      // URLなし
+      // URLなし（これは依然としてエラー）
       await request(app)
         .post('/api/bookmarks')
         .send({ title: 'テスト' })
@@ -286,6 +280,26 @@ describe('Bookmarks API - E2E Tests', () => {
         .post('/api/bookmarks')
         .send({ title: 'テスト', url: 'invalid-url' })
         .expect(400);
+    });
+
+    it('URLのみ提供した場合はタイトルが自動取得される', async () => {
+      // URLのみ提供 - 今はこれが有効になった
+      const response = await request(app)
+        .post('/api/bookmarks')
+        .send({ url: 'https://example.com/test-auto-title' })
+        .expect(201);
+
+      // タイトルが自動で設定されていることを確認
+      expect(response.body).toHaveProperty('title');
+      expect(response.body.title).toBeTruthy();
+      expect(response.body.url).toBe('https://example.com/test-auto-title');
+
+      // 作成されたブックマークを削除（クリーンアップ）
+      if (response.body.id) {
+        await request(app)
+          .delete(`/api/bookmarks/${response.body.id}`)
+          .expect(204);
+      }
     });
 
     it('存在しないリソースに対する操作が適切に処理される', async () => {

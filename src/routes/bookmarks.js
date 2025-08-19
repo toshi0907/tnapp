@@ -1,5 +1,6 @@
 const express = require('express');
 const bookmarkStorage = require('../database/bookmarkStorage');
+const { fetchPageTitle } = require('../utils/urlUtils');
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ const router = express.Router();
  *               $ref: '#/components/schemas/Error'
  *   post:
  *     summary: 新規ブックマーク作成
- *     description: 新しいブックマークを作成
+ *     description: 新しいブックマークを作成。タイトルが指定されていない場合、URLからページタイトルを自動取得
  *     tags: [Bookmarks]
  *     requestBody:
  *       required: true
@@ -59,17 +60,16 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - title
  *               - url
  *             properties:
  *               title:
  *                 type: string
- *                 description: ブックマークタイトル
+ *                 description: ブックマークタイトル（省略可能：URLから自動取得）
  *                 example: "Node.js"
  *               url:
  *                 type: string
  *                 format: uri
- *                 description: URL（ユニーク）
+ *                 description: URL（必須、ユニーク）
  *                 example: "https://nodejs.org"
  *               description:
  *                 type: string
@@ -287,11 +287,11 @@ router.get('/:id', async (req, res) => {
 // 新規ブックマーク作成
 router.post('/', async (req, res) => {
   try {
-    const { title, url, description, tags, category } = req.body;
+    let { title, url, description, tags, category } = req.body;
     
-    if (!title || !url) {
+    if (!url) {
       return res.status(400).json({
-        error: 'Title and URL are required'
+        error: 'URL is required'
       });
     }
 
@@ -302,6 +302,25 @@ router.post('/', async (req, res) => {
       return res.status(400).json({
         error: 'Invalid URL format'
       });
+    }
+
+    // タイトルが提供されていない場合、URLからタイトルを取得
+    if (!title || title.trim() === '') {
+      try {
+        const fetchedTitle = await fetchPageTitle(url);
+        if (fetchedTitle) {
+          title = fetchedTitle;
+        } else {
+          // タイトル取得に失敗した場合はURLからホスト名を使用
+          const urlObj = new URL(url);
+          title = urlObj.hostname;
+        }
+      } catch (error) {
+        console.warn('Failed to fetch title for URL:', url, error.message);
+        // タイトル取得に失敗した場合はURLからホスト名を使用
+        const urlObj = new URL(url);
+        title = urlObj.hostname;
+      }
     }
 
     const newBookmark = await bookmarkStorage.addBookmark({ 

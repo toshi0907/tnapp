@@ -306,8 +306,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const category = categoryInputForm.value.trim();
     const tagsInput = form.tags.value.trim();
     
-    if (!title || !url) {
-      setMsg('Title and URL are required', false);
+    if (!url) {
+      setMsg('URL is required', false);
       return;
     }
 
@@ -317,13 +317,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isEditing = bookmarkIdInput.value.trim() !== '';
     
     try {
+      // タイトルが空の場合はユーザーに通知
+      if (!title) {
+        setMsg('Fetching title from URL...', true);
+      }
+      
       const bookmarkData = {
-        title,
         url,
         description,
         category: category || 'general',
         tags
       };
+      
+      // タイトルが提供されている場合のみ含める
+      if (title) {
+        bookmarkData.title = title;
+      }
       
       let res;
       if (isEditing) {

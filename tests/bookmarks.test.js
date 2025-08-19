@@ -26,13 +26,26 @@ jest.mock('../src/database/bookmarkStorage', () => {
   };
 });
 
+// URLユーティリティモジュールをモック
+jest.mock('../src/utils/urlUtils', () => {
+  return {
+    fetchPageTitle: jest.fn()
+  };
+});
+
 const bookmarkStorage = require('../src/database/bookmarkStorage');
+const { fetchPageTitle } = require('../src/utils/urlUtils');
 const bookmarkRouter = require('../src/routes/bookmarks');
 
 // ルーターをアプリにマウント
 app.use('/api/bookmarks', bookmarkRouter);
 
 describe('Bookmarks API', () => {
+  beforeEach(() => {
+    // モックをリセット
+    jest.clearAllMocks();
+  });
+
   // テストデータ
   const sampleBookmarks = [
     {
@@ -156,15 +169,15 @@ describe('Bookmarks API', () => {
       expect(bookmarkStorage.addBookmark).toHaveBeenCalledWith(newBookmark);
     });
 
-    it('必須フィールドがない場合400を返す', async () => {
-      const invalidBookmark = { description: 'URLなし' };
+    it('URLがない場合400を返す', async () => {
+      const invalidBookmark = { title: 'タイトルのみ', description: 'URLなし' };
 
       const response = await request(app)
         .post('/api/bookmarks')
         .send(invalidBookmark)
         .expect(400);
 
-      expect(response.body).toHaveProperty('error', 'Title and URL are required');
+      expect(response.body).toHaveProperty('error', 'URL is required');
     });
 
     it('無効なURLの場合400を返す', async () => {
@@ -179,6 +192,98 @@ describe('Bookmarks API', () => {
         .expect(400);
 
       expect(response.body).toHaveProperty('error', 'Invalid URL format');
+    });
+    
+    it('タイトルなしでURLのみの場合、URLからタイトルを自動取得する', async () => {
+      // fetchPageTitleをモック
+      fetchPageTitle.mockResolvedValue('Fetched Page Title');
+      
+      const bookmarkWithoutTitle = {
+        url: 'https://example.com',
+        description: 'タイトルなしブックマーク',
+        category: 'auto-title'
+      };
+      
+      const expectedBookmark = {
+        title: 'Fetched Page Title',
+        url: 'https://example.com',
+        description: 'タイトルなしブックマーク',
+        tags: [],
+        category: 'auto-title'
+      };
+      
+      const createdBookmark = { id: 4, ...expectedBookmark };
+      bookmarkStorage.addBookmark.mockResolvedValue(createdBookmark);
+      
+      const response = await request(app)
+        .post('/api/bookmarks')
+        .send(bookmarkWithoutTitle)
+        .expect(201);
+      
+      expect(fetchPageTitle).toHaveBeenCalledWith('https://example.com');
+      expect(bookmarkStorage.addBookmark).toHaveBeenCalledWith(expectedBookmark);
+      expect(response.body).toEqual(createdBookmark);
+    });
+    
+    it('タイトル取得失敗時はホスト名をタイトルとして使用する', async () => {
+      // fetchPageTitleをモック（null返却）
+      fetchPageTitle.mockResolvedValue(null);
+      
+      const bookmarkWithoutTitle = {
+        url: 'https://example.com/some/path',
+        description: 'タイトル取得失敗ケース'
+      };
+      
+      const expectedBookmark = {
+        title: 'example.com',
+        url: 'https://example.com/some/path',
+        description: 'タイトル取得失敗ケース',
+        tags: [],
+        category: undefined
+      };
+      
+      const createdBookmark = { id: 5, ...expectedBookmark };
+      bookmarkStorage.addBookmark.mockResolvedValue(createdBookmark);
+      
+      const response = await request(app)
+        .post('/api/bookmarks')
+        .send(bookmarkWithoutTitle)
+        .expect(201);
+      
+      expect(fetchPageTitle).toHaveBeenCalledWith('https://example.com/some/path');
+      expect(bookmarkStorage.addBookmark).toHaveBeenCalledWith(expectedBookmark);
+      expect(response.body).toEqual(createdBookmark);
+    });
+    
+    it('空のタイトルでもURLからタイトルを自動取得する', async () => {
+      // fetchPageTitleをモック
+      fetchPageTitle.mockResolvedValue('Auto Fetched Title');
+      
+      const bookmarkWithEmptyTitle = {
+        title: '',
+        url: 'https://example.com',
+        description: '空タイトルブックマーク'
+      };
+      
+      const expectedBookmark = {
+        title: 'Auto Fetched Title',
+        url: 'https://example.com',
+        description: '空タイトルブックマーク',
+        tags: [],
+        category: undefined
+      };
+      
+      const createdBookmark = { id: 6, ...expectedBookmark };
+      bookmarkStorage.addBookmark.mockResolvedValue(createdBookmark);
+      
+      const response = await request(app)
+        .post('/api/bookmarks')
+        .send(bookmarkWithEmptyTitle)
+        .expect(201);
+      
+      expect(fetchPageTitle).toHaveBeenCalledWith('https://example.com');
+      expect(bookmarkStorage.addBookmark).toHaveBeenCalledWith(expectedBookmark);
+      expect(response.body).toEqual(createdBookmark);
     });
 
     it('重複URLの場合409を返す', async () => {
