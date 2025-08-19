@@ -273,17 +273,37 @@ document.addEventListener('DOMContentLoaded', async () => {
       
       Object.keys(groups).sort().forEach(category => {
         const groupDiv = document.createElement('div');
-        groupDiv.className = 'category-group';
+        groupDiv.className = 'category-group collapsed'; // Start collapsed
         
         const header = document.createElement('div');
         header.className = 'category-header';
-        header.textContent = `${category.charAt(0).toUpperCase() + category.slice(1)} (${groups[category].length})`;
-        groupDiv.appendChild(header);
         
-        groups[category].forEach(bookmark => {
-          groupDiv.appendChild(createBookmarkElement(bookmark));
+        const headerText = document.createElement('span');
+        headerText.textContent = `${category.charAt(0).toUpperCase() + category.slice(1)} (${groups[category].length})`;
+        
+        const toggleIcon = document.createElement('span');
+        toggleIcon.className = 'category-toggle';
+        toggleIcon.textContent = '▼'; // Down arrow
+        
+        header.appendChild(headerText);
+        header.appendChild(toggleIcon);
+        
+        // Add click handler for toggle
+        header.addEventListener('click', () => {
+          groupDiv.classList.toggle('collapsed');
         });
         
+        groupDiv.appendChild(header);
+        
+        // Create container for bookmark items
+        const itemsContainer = document.createElement('div');
+        itemsContainer.className = 'category-items';
+        
+        groups[category].forEach(bookmark => {
+          itemsContainer.appendChild(createBookmarkElement(bookmark));
+        });
+        
+        groupDiv.appendChild(itemsContainer);
         listContainer.appendChild(groupDiv);
       });
       
