@@ -2,6 +2,71 @@ body { font-family: system-ui, sans-serif; margin: 1.2rem; }
 h1 { font-size: 1.2rem; }
 form { margin: 1rem 0; }
 
+/* Navigation Cards for Index Page */
+.nav-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin: 2rem 0;
+}
+
+.nav-card {
+  padding: 1.5rem;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: .5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  border-left: 4px solid transparent;
+}
+
+.nav-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  text-decoration: none;
+  color: inherit;
+}
+
+.nav-card.bookmarks {
+  border-left-color: #2196F3;
+}
+
+.nav-card.bookmarks:hover {
+  border-left-color: #1976D2;
+}
+
+.nav-card.todos {
+  border-left-color: #4CAF50;
+}
+
+.nav-card.todos:hover {
+  border-left-color: #388E3C;
+}
+
+.nav-card.api {
+  border-left-color: #ff9800;
+}
+
+.nav-card.api:hover {
+  border-left-color: #F57C00;
+}
+
+.nav-card-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: .5rem;
+  color: #333;
+}
+
+.nav-card-description {
+  font-size: .9rem;
+  color: #666;
+  line-height: 1.4;
+}
+
 .form-group {
   margin-bottom: 1rem;
 }
