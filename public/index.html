@@ -4,17 +4,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Index Page</title>
+  <title>TN API Server - Home</title>
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <h1>Index</h1>
-  <ul>
-    <li><a href="/public/bookmark">Bookmarks</a></li>
-    <li><a href="/public/todo">Todo List</a></li>
-    <li><a href="/api-docs">ApiDoc</a></li>
-  </ul>
+  <h1>TN API Server</h1>
+  <div class="nav-container">
+    <a href="/public/bookmark" class="nav-card bookmarks">
+      <div class="nav-card-title">📚 Bookmarks</div>
+      <div class="nav-card-description">
+        ブックマーク管理システム。お気に入りのWebサイトを保存・整理できます。
+      </div>
+    </a>
+    
+    <a href="/public/todo" class="nav-card todos">
+      <div class="nav-card-title">✅ Todo List</div>
+      <div class="nav-card-description">
+        タスク管理システム。TODOの作成、編集、優先度設定、期限管理が可能です。
+      </div>
+    </a>
+    
+    <a href="/api-docs" class="nav-card api">
+      <div class="nav-card-title">📖 API Documentation</div>
+      <div class="nav-card-description">
+        インタラクティブなAPIドキュメント。エンドポイントの詳細と動作テストができます。
+      </div>
+    </a>
+  </div>
 </body>
 
 </html>
