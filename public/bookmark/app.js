@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const formTitle = document.getElementById('form-title');
   const categoryFilter = document.getElementById('category-filter');
   const sortSelect = document.getElementById('sort-select');
+  const editEnable = document.getElementById('edit-enable');
   const categoryInputForm = document.getElementById('category-input');
   const bookmarkIdInput = document.getElementById('bookmark-id');
   const submitBtn = document.getElementById('submit-btn');
@@ -200,6 +201,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     actionsDiv.appendChild(editBtn);
     actionsDiv.appendChild(deleteBtn);
+    
+    // Show/hide actions based on edit-enable checkbox
+    actionsDiv.style.display = editEnable.checked ? 'flex' : 'none';
     
     div.appendChild(contentDiv);
     div.appendChild(actionsDiv);
@@ -401,6 +405,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // フィルター/ソート変更時にリロード
   categoryFilter.addEventListener('change', loadBookmarks);
   sortSelect.addEventListener('change', loadBookmarks);
+  editEnable.addEventListener('change', loadBookmarks);
 
   // 初期化
   await loadCategories();
