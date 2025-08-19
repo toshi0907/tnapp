@@ -90,7 +90,8 @@ form { margin: 1rem 0; }
   min-width: 200px;
 }
 
-#todo-form input, #todo-form select, #todo-form textarea {
+#todo-form input, #todo-form select, #todo-form textarea,
+#bookmark-form input, #bookmark-form select, #bookmark-form textarea {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #ddd;
@@ -98,12 +99,14 @@ form { margin: 1rem 0; }
   font-family: inherit;
 }
 
-#todo-form textarea {
+#todo-form textarea,
+#bookmark-form textarea {
   resize: vertical;
   min-height: 60px;
 }
 
-#todo-form button[type="submit"] {
+#todo-form button[type="submit"],
+#bookmark-form button[type="submit"] {
   background: #007bff;
   color: white;
   border: none;
@@ -114,7 +117,8 @@ form { margin: 1rem 0; }
   font-weight: bold;
 }
 
-#todo-form button[type="submit"]:hover {
+#todo-form button[type="submit"]:hover,
+#bookmark-form button[type="submit"]:hover {
   background: #0056b3;
 }
 input, button, select { padding: .4rem .6rem; font-size: .9rem; }
