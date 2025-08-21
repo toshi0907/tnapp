@@ -208,6 +208,24 @@ TODO管理APIの詳細仕様は [Swagger UI](http://localhost:3000/api-docs) で
 - **フィルタリング**: 状態、通知方法、カテゴリによる絞り込み
 - **統計情報**: 通知済み・未通知の件数等
 
+#### Webhook通知の拡張機能
+Webhook通知では、JSONペイロードに加えて**クエリパラメータ**として `title` と `message` が自動付与されます：
+
+- **title**: リマインダーのタイトル（常に付与）
+- **message**: メッセージ内容（空でない場合のみ付与）
+- **文字エンコード**: 日本語や特殊文字は自動的にURLエンコード
+
+**Webhook URL例:**
+```
+# タイトルとメッセージ両方がある場合
+https://example.com/webhook?title=会議の準備&message=明日の会議の資料を確認してください
+
+# タイトルのみの場合（メッセージが空）
+https://example.com/webhook?title=健康診断の予約
+```
+
+これにより、Webhookを受信する側でリクエストボディを解析することなく、URLから直接キー情報を取得できます。
+
 #### 日本語日付形式対応
 リマインダーAPIは使いやすい日本語日付形式をサポートしています：
 - **入力形式**: "2025/8/15 18:00" （年/月/日 時:分）
@@ -261,6 +279,12 @@ curl -u admin:your-secure-password \
   -H "Content-Type: application/json" \
   -d '{"title":"テスト通知","message":"Email通知のテストです"}' \
   -X POST http://localhost:3000/api/reminders/test/email
+```
+
+**Webhook通知テスト時のURL例:**
+```
+# テスト通知実行時、Webhookは以下のようなURLで送信されます
+https://your-webhook-url?title=テスト通知&message=Webhook通知のテストです
 ```
 
 ## セキュリティ機能
