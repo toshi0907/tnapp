@@ -13,6 +13,7 @@ Node.js で構築されたシンプルなAPIサーバです。
 - ユーザーAPI（CRUD操作対応）
 - **ブックマーク管理API**（CRUD操作、検索、カテゴリ・タグ機能対応）
 - **TODO管理API**（CRUD操作、優先度・カテゴリ・タグ機能対応）
+- **リマインダー管理API**（スケジューリング、通知、日本語日付形式対応）
 - **Swagger UI API仕様書**（インタラクティブなAPI仕様書）
 
 ## セットアップ
@@ -35,6 +36,20 @@ cp .env.example .env
 ```bash
 PORT=3000
 NODE_ENV=development
+
+# リマインダー通知設定
+WEBHOOK_URL=https://webhook.site/your-webhook-url
+
+# メール設定（SMTP）
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_AUTH_METHOD=PLAIN
+SMTP_REQUIRE_TLS=true
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+EMAIL_FROM=your-email@gmail.com
+EMAIL_TO=notification@example.com
 ```
 
 ### 3. サーバーの起動
@@ -65,7 +80,7 @@ npm start
 
 ## データ永続化
 
-ブックマークデータは `data/bookmarks.json` ファイルに、TODOデータは `data/todos.json` ファイルに保存されます。サーバー再起動後もデータは保持されます。
+ブックマークデータは `data/bookmarks.json` ファイルに、TODOデータは `data/todos.json` ファイルに、リマインダーデータは `data/reminders.json` ファイルに保存されます。サーバー再起動後もデータは保持されます。
 
 ## API エンドポイント
 
@@ -93,6 +108,15 @@ npm start
 - `DELETE /api/todos/:id` - TODO削除
 - `PATCH /api/todos/:id/toggle` - 完了状態切り替え
 - `GET /api/todos/meta/*` - メタデータ取得（カテゴリ・タグ・統計）
+
+#### リマインダー管理
+- `GET /api/reminders` - リマインダー一覧取得（フィルタ・検索対応）
+- `POST /api/reminders` - 新規リマインダー作成
+- `GET /api/reminders/:id` - 特定リマインダー取得
+- `PUT /api/reminders/:id` - リマインダー更新
+- `DELETE /api/reminders/:id` - リマインダー削除
+- `GET /api/reminders/meta/*` - メタデータ取得（カテゴリ・タグ・統計）
+- `POST /api/reminders/test/:method` - 通知テスト（webhook/email）
 
 ### クイックテスト
 
@@ -122,15 +146,29 @@ totos_app/
 │   │   └── swagger.js              # Swagger UI設定
 │   ├── database/
 │   │   ├── bookmarkStorage.js      # ブックマークデータ永続化クラス
-│   │   └── todoStorage.js          # TODOデータ永続化クラス
+│   │   ├── todoStorage.js          # TODOデータ永続化クラス
+│   │   └── reminderStorage.js      # リマインダーデータ永続化クラス
 │   ├── routes/
 │   │   ├── bookmarks.js            # ブックマーク関連ルーター
-│   │   └── todos.js                # TODO関連ルーター
+│   │   ├── todos.js                # TODO関連ルーター
+│   │   └── reminders.js            # リマインダー関連ルーター
+│   ├── services/
+│   │   └── notificationService.js  # 通知サービス（Webhook・Email）
+│   ├── utils/
+│   │   ├── dateUtils.js            # 日付フォーマット・パースユーティリティ
+│   │   └── urlUtils.js             # URL関連ユーティリティ
 │   ├── initData.js                 # 初期データ作成
+│   ├── createApp.js                # Express アプリケーション設定
 │   └── server.js                   # メインサーバーファイル
 ├── data/
 │   ├── bookmarks.json              # ブックマークデータファイル
-│   └── todos.json                  # TODOデータファイル
+│   ├── todos.json                  # TODOデータファイル
+│   └── reminders.json              # リマインダーデータファイル
+├── tests/
+│   ├── helpers/                    # テストユーティリティ
+│   ├── reminders.test.js           # リマインダー単体テスト
+│   ├── reminders.e2e.test.js       # リマインダーE2Eテスト
+│   └── *.test.js                   # その他のテストファイル
 ├── .env                            # 環境変数（要作成）
 ├── .env.example                    # 環境変数テンプレート
 ├── package.json                    # プロジェクト設定
@@ -157,6 +195,45 @@ TODO管理APIの詳細仕様は [Swagger UI](http://localhost:3000/api-docs) で
 - `PATCH /api/todos/:id/toggle` - 完了状態切り替え
 - `GET /api/todos/meta/*` - メタデータ・統計情報
 
+### リマインダー管理API
+
+リマインダー管理APIの詳細仕様は [Swagger UI](http://localhost:3000/api-docs) で確認してください。
+
+#### 主要機能
+- **CRUD操作**: 作成・読み取り・更新・削除
+- **スケジューリング**: node-scheduleによる自動通知
+- **通知方法**: Webhook（HTTP POST）・Email（SMTP）
+- **繰り返し設定**: 日次・週次・月次・年次
+- **日本語日付形式**: "2025/8/15 18:00" 形式での入力・出力
+- **フィルタリング**: 状態、通知方法、カテゴリによる絞り込み
+- **統計情報**: 通知済み・未通知の件数等
+
+#### 日本語日付形式対応
+リマインダーAPIは使いやすい日本語日付形式をサポートしています：
+- **入力形式**: "2025/8/15 18:00" （年/月/日 時:分）
+- **出力形式**: APIレスポンスは常に日本語形式で返却
+- **後方互換性**: ISO 8601形式も引き続き受け付け
+- **自動判定**: 入力形式を自動で判定・パース
+
+```json
+// 日本語形式でのAPI使用例
+{
+  "title": "会議の準備",
+  "message": "明日の会議資料を確認してください",
+  "notificationDateTime": "2025/8/15 18:00",
+  "notificationMethod": "webhook"
+}
+```
+
+#### エンドポイント概要
+- `GET /api/reminders` - リマインダー一覧取得（フィルタ・検索対応）
+- `POST /api/reminders` - 新規リマインダー作成
+- `GET /api/reminders/:id` - 特定リマインダー取得
+- `PUT /api/reminders/:id` - リマインダー更新
+- `DELETE /api/reminders/:id` - リマインダー削除
+- `GET /api/reminders/meta/*` - メタデータ・統計情報
+- `POST /api/reminders/test/:method` - 通知テスト（webhook/email）
+
 ## 開発
 
 ### 初期データの生成
@@ -168,6 +245,22 @@ npm run init-data
 ```bash
 cat data/bookmarks.json
 cat data/todos.json
+cat data/reminders.json
+```
+
+### リマインダー通知テスト
+```bash
+# Webhook通知テスト
+curl -u admin:your-secure-password \
+  -H "Content-Type: application/json" \
+  -d '{"title":"テスト通知","message":"Webhook通知のテストです"}' \
+  -X POST http://localhost:3000/api/reminders/test/webhook
+
+# Email通知テスト
+curl -u admin:your-secure-password \
+  -H "Content-Type: application/json" \
+  -d '{"title":"テスト通知","message":"Email通知のテストです"}' \
+  -X POST http://localhost:3000/api/reminders/test/email
 ```
 
 ## セキュリティ機能
@@ -186,6 +279,9 @@ cat data/todos.json
 - **dotenv**: 環境変数管理
 - **swagger-jsdoc**: JSDocからOpenAPI仕様書生成
 - **swagger-ui-express**: Swagger UIの提供
+- **node-schedule**: スケジューリング（リマインダー機能）
+- **nodemailer**: メール送信（SMTP）
+- **axios**: HTTP クライアント（Webhook通知）
 
 ## アクセス情報
 
