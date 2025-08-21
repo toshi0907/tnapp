@@ -121,7 +121,14 @@ class NotificationService {
         tags: reminder.tags
       };
 
-      const response = await axios.post(process.env.WEBHOOK_URL, payload, {
+      // Add title and message as query parameters
+      const url = new URL(process.env.WEBHOOK_URL);
+      url.searchParams.append('title', reminder.title || '');
+      if (reminder.message) {
+        url.searchParams.append('message', reminder.message);
+      }
+
+      const response = await axios.post(url.toString(), payload, {
         headers: {
           'Content-Type': 'application/json',
           'User-Agent': 'TN-API-Server-Reminder'
