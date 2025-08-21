@@ -174,9 +174,8 @@ const options = {
             },
             notificationDateTime: {
               type: 'string',
-              format: 'date-time',
-              description: '通知日時 (ISO 8601形式)',
-              example: '2025-08-15T09:00:00.000Z'
+              description: '通知日時 (year month day hour min形式)',
+              example: '2025/8/15 18:00'
             },
             notificationMethod: {
               type: 'string',
@@ -192,10 +191,9 @@ const options = {
             },
             lastNotificationDateTime: {
               type: 'string',
-              format: 'date-time',
               nullable: true,
-              description: '最終通知日時',
-              example: '2025-08-15T09:00:00.000Z'
+              description: '最終通知日時 (year month day hour min形式)',
+              example: '2025/8/15 18:00'
             },
             timezone: {
               type: 'string',
