@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reminders</title>
+  <link rel="stylesheet" href="/public/style.css">
+  <script src="/public/reminder/app.js" defer></script>
+</head>
+
+<body>
+  <h1>Reminders</h1>
+
+  <h2>List</h2>
+  <div class="todo-controls">
+    <label for="status-filter">Status:</label>
+    <select id="status-filter">
+      <option value="">All Status</option>
+      <option value="pending">Pending</option>
+      <option value="sent">Sent</option>
+    </select>
+    
+    <label for="category-filter">Category:</label>
+    <select id="category-filter">
+      <option value="">All Categories</option>
+    </select>
+    
+    <label for="method-filter">Method:</label>
+    <select id="method-filter">
+      <option value="">All Methods</option>
+      <option value="webhook">Webhook</option>
+      <option value="email">Email</option>
+    </select>
+    
+    <label for="sort-select">Sort by:</label>
+    <select id="sort-select">
+      <option value="default">Default</option>
+      <option value="notificationDateTime">Notification Date</option>
+      <option value="title">Title</option>
+      <option value="category">Category</option>
+    </select>
+    
+    <label>
+      <input type="checkbox" id="hide-sent" checked> Hide Sent Reminders
+    </label>
+  </div>
+  <p><small>Click on any reminder to toggle its status or edit</small></p>
+  <div id="list-container"></div>
+
+  <h2 id="form-title">Register</h2>
+  <form id="reminder-form">
+    <input type="hidden" id="reminder-id" value="">
+    <div class="form-group">
+      <label for="title">Title *</label>
+      <input type="text" id="title" placeholder="Reminder title" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="message">Message</label>
+      <textarea id="message" placeholder="Reminder message (optional)"></textarea>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label for="notification-datetime">Notification Date & Time *</label>
+        <input type="datetime-local" id="notification-datetime" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="notification-method">Notification Method</label>
+        <select id="notification-method">
+          <option value="webhook">Webhook</option>
+          <option value="email">Email</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label for="category-input">Category</label>
+        <input type="text" id="category-input" name="category-input" placeholder="Select existing or type new category" list="category-list">
+        <datalist id="category-list">
+        </datalist>
+      </div>
+    </div>
+    
+    <div class="form-group">
+      <label for="tags">Tags</label>
+      <input type="text" id="tags" placeholder="Comma-separated tags (e.g., important, urgent, meeting)">
+    </div>
+    
+    <div class="form-group">
+      <label>
+        <input type="checkbox" id="enable-repeat"> Enable Repeat
+      </label>
+    </div>
+    
+    <div id="repeat-settings" style="display: none;">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="repeat-interval">Repeat Interval</label>
+          <select id="repeat-interval">
+            <option value="">Select Interval</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="yearly">Yearly</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="repeat-end-date">End Date</label>
+          <input type="datetime-local" id="repeat-end-date">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="max-occurrences">Max Occurrences</label>
+        <input type="number" id="max-occurrences" placeholder="Leave empty for unlimited" min="1">
+      </div>
+    </div>
+    
+    <button type="submit" id="submit-btn">Add Reminder</button>
+    <button type="button" id="cancel-btn" style="display: none;">Cancel</button>
+  </form>
+
+  <div id="msg" class="msg"></div>
+</body>
+
+</html>
