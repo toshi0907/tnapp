@@ -13,6 +13,7 @@ Node.js + Express.jsで構築されたシンプルなRESTful APIサーバー。
 - ヘルスチェックエンドポイント
 - **ブックマーク管理API**（CRUD操作、検索、カテゴリ・タグ機能対応）
 - **TODO管理API**（CRUD操作、優先度・カテゴリ・タグ機能対応）
+- **リマインダー管理API**（スケジューリング、通知、日本語日付形式対応）
 - **Swagger UI API仕様書**（インタラクティブなAPI仕様書）
 
 ## 技術スタック
@@ -21,6 +22,9 @@ Node.js + Express.jsで構築されたシンプルなRESTful APIサーバー。
 - **データ永続化**: JSONファイル
 - **API仕様書**: Swagger UI (swagger-jsdoc, swagger-ui-express)
 - **セキュリティ**: Helmet, CORS
+- **スケジューリング**: node-schedule（リマインダー機能）
+- **通知**: nodemailer（Email）, axios（Webhook）
+- **日付処理**: カスタム日付ユーティリティ（日本語形式対応）
 - **テスト**: Jest, Supertest
 - **開発**: nodemon (ホットリロード)
 
@@ -34,17 +38,28 @@ tnapp/
 │   │   └── swagger.js              # Swagger UI設定
 │   ├── database/
 │   │   ├── bookmarkStorage.js      # ブックマークデータ永続化クラス
-│   │   └── todoStorage.js          # TODOデータ永続化クラス
+│   │   ├── todoStorage.js          # TODOデータ永続化クラス
+│   │   └── reminderStorage.js      # リマインダーデータ永続化クラス
 │   ├── routes/
 │   │   ├── bookmarks.js            # ブックマーク関連ルーター
-│   │   └── todos.js                # TODO関連ルーター
+│   │   ├── todos.js                # TODO関連ルーター
+│   │   └── reminders.js            # リマインダー関連ルーター
+│   ├── services/
+│   │   └── notificationService.js  # 通知サービス（Webhook・Email）
+│   ├── utils/
+│   │   ├── dateUtils.js            # 日付フォーマット・パースユーティリティ
+│   │   └── urlUtils.js             # URL関連ユーティリティ
 │   ├── initData.js                 # 初期データ作成
+│   ├── createApp.js                # Express アプリケーション設定
 │   └── server.js                   # メインサーバーファイル
 ├── data/
 │   ├── bookmarks.json              # ブックマークデータファイル
-│   └── todos.json                  # TODOデータファイル
+│   ├── todos.json                  # TODOデータファイル
+│   └── reminders.json              # リマインダーデータファイル
 ├── tests/
 │   ├── helpers/                    # テストユーティリティ
+│   ├── reminders.test.js           # リマインダー単体テスト
+│   ├── reminders.e2e.test.js       # リマインダーE2Eテスト
 │   ├── *.test.js                   # 単体テスト
 │   └── *.e2e.test.js              # E2Eテスト
 ├── .env                            # 環境変数（要作成）
@@ -300,6 +315,93 @@ async searchEntities(filters) {
 - **検索最適化**: 文字列検索の効率化
 - **エラーキャッシュ**: 適切な例外処理
 
+## リマインダー機能開発ガイドライン
+
+### 日本語日付形式対応
+リマインダーAPIでは日本語の日付形式 "year/month/day hour:min" をサポート：
+
+```javascript
+// dateUtils.js の使用例
+const { parseFlexibleDate, formatReminderDates } = require('../utils/dateUtils');
+
+// 入力データの処理（日本語形式とISO形式両方対応）
+const parsedDate = parseFlexibleDate("2025/8/15 18:00"); // または "2025-08-15T18:00:00Z"
+
+// 出力データのフォーマット（常に日本語形式）
+const formattedReminder = formatReminderDates(reminderData);
+```
+
+### スケジューリング機能
+node-scheduleを使用した自動通知システム：
+
+```javascript
+// 通知スケジュールの設定
+const schedule = require('node-schedule');
+
+// 一回限りの通知
+const job = schedule.scheduleJob(notificationDate, () => {
+  notificationService.sendNotification(reminder);
+});
+
+// 繰り返し通知
+const rule = new schedule.RecurrenceRule();
+rule.hour = 9;  // 毎日9時
+const recurringJob = schedule.scheduleJob(rule, () => {
+  // 繰り返し処理
+});
+```
+
+### 通知サービスパターン
+複数の通知方法を統一的に扱うパターン：
+
+```javascript
+// notificationService.js
+class NotificationService {
+  async sendNotification(reminder) {
+    switch (reminder.notificationMethod) {
+      case 'webhook':
+        return await this.sendWebhook(reminder);
+      case 'email':
+        return await this.sendEmail(reminder);
+      default:
+        throw new Error('Unsupported notification method');
+    }
+  }
+
+  async sendWebhook(reminder) {
+    const response = await axios.post(process.env.WEBHOOK_URL, {
+      title: reminder.title,
+      message: reminder.message,
+      timestamp: new Date().toISOString()
+    });
+    return response.status === 200;
+  }
+
+  async sendEmail(reminder) {
+    // nodemailer設定とメール送信
+  }
+}
+```
+
+### 環境変数（リマインダー関連）
+`.env` ファイルに以下の設定が必要：
+
+```bash
+# Webhook設定
+WEBHOOK_URL=https://webhook.site/your-webhook-url
+
+# SMTP設定（Gmail用の推奨設定）
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_AUTH_METHOD=PLAIN
+SMTP_REQUIRE_TLS=true
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+EMAIL_FROM=your-email@gmail.com
+EMAIL_TO=notification@example.com
+```
+
 ## 推奨しないパターン
 
 ### ❌ 避けるべきパターン
@@ -369,6 +471,15 @@ if (!title || !url) {
 - `DELETE /api/todos/:id` - TODO削除
 - `PATCH /api/todos/:id/toggle` - 完了状態切り替え
 - `GET /api/todos/meta/*` - メタデータ取得（カテゴリ・タグ・統計）
+
+#### リマインダー管理
+- `GET /api/reminders` - リマインダー一覧取得（フィルタ・検索対応）
+- `POST /api/reminders` - 新規リマインダー作成
+- `GET /api/reminders/:id` - 特定リマインダー取得
+- `PUT /api/reminders/:id` - リマインダー更新
+- `DELETE /api/reminders/:id` - リマインダー削除
+- `GET /api/reminders/meta/*` - メタデータ取得（カテゴリ・タグ・統計）
+- `POST /api/reminders/test/:method` - 通知テスト（webhook/email）
 
 ### API仕様書
 - **Swagger UI**: http://localhost:3000/api-docs で詳細なAPI仕様を確認可能

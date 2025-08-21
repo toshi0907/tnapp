@@ -1,5 +1,6 @@
 const bookmarkStorage = require('./database/bookmarkStorage');
 const todoStorage = require('./database/todoStorage');
+const reminderStorage = require('./database/reminderStorage');
 
 async function initializeData() {
   try {
@@ -104,6 +105,53 @@ async function initializeData() {
       console.log('✅ Sample todos initialized successfully');
     } else {
       console.log(`📝 Database already contains ${existingTodos.length} todos`);
+    }
+
+    // リマインダーデータの初期化
+    const existingReminders = await reminderStorage.getReminders();
+    
+    if (existingReminders.length === 0) {
+      // サンプルリマインダーを追加
+      const now = new Date();
+      const futureDateTime1 = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 1日後
+      const futureDateTime2 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 1週間後
+      const futureDateTime3 = new Date(now.getTime() + 2 * 60 * 60 * 1000); // 2時間後
+
+      await reminderStorage.addReminder({
+        title: '会議の準備',
+        message: '明日のプロジェクト会議の資料を確認してください。議題とプレゼンテーションを準備しましょう。',
+        notificationDateTime: futureDateTime1.toISOString(),
+        notificationMethod: 'webhook',
+        category: 'work',
+        tags: ['meeting', 'important', 'preparation']
+      });
+
+      await reminderStorage.addReminder({
+        title: '健康診断の予約',
+        message: '年次健康診断の予約を忘れずに取ってください。',
+        notificationDateTime: futureDateTime2.toISOString(),
+        notificationMethod: 'email',
+        category: 'health',
+        tags: ['health', 'annual', 'appointment']
+      });
+
+      await reminderStorage.addReminder({
+        title: 'API サーバーのデプロイ',
+        message: '新機能をプロダクション環境にデプロイする時間です。',
+        notificationDateTime: futureDateTime3.toISOString(),
+        notificationMethod: 'webhook',
+        category: 'development',
+        tags: ['deployment', 'production', 'urgent'],
+        repeatSettings: {
+          interval: 'weekly',
+          maxOccurrences: 5,
+          currentOccurrence: 1
+        }
+      });
+
+      console.log('✅ Sample reminders initialized successfully');
+    } else {
+      console.log(`🔔 Database already contains ${existingReminders.length} reminders`);
     }
   } catch (error) {
     console.error('❌ Error initializing data:', error);

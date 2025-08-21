@@ -152,6 +152,106 @@ const options = {
             }
           }
         },
+        Reminder: {
+          type: 'object',
+          required: ['title', 'notificationDateTime'],
+          properties: {
+            id: {
+              type: 'integer',
+              format: 'int64',
+              description: 'リマインダーID (タイムスタンプベース)',
+              example: 1722672000000
+            },
+            title: {
+              type: 'string',
+              description: 'リマインダータイトル',
+              example: '会議の準備'
+            },
+            message: {
+              type: 'string',
+              description: 'メッセージ内容',
+              example: '明日の会議資料を確認してください'
+            },
+            notificationDateTime: {
+              type: 'string',
+              description: '通知日時 (year month day hour min形式)',
+              example: '2025/8/15 18:00'
+            },
+            notificationMethod: {
+              type: 'string',
+              enum: ['webhook', 'email'],
+              description: '通知手段',
+              example: 'webhook'
+            },
+            notificationStatus: {
+              type: 'string',
+              enum: ['pending', 'sent'],
+              description: '通知状態',
+              example: 'pending'
+            },
+            lastNotificationDateTime: {
+              type: 'string',
+              nullable: true,
+              description: '最終通知日時 (year month day hour min形式)',
+              example: '2025/8/15 18:00'
+            },
+            timezone: {
+              type: 'string',
+              description: 'タイムゾーン',
+              example: 'Asia/Tokyo'
+            },
+            category: {
+              type: 'string',
+              description: 'カテゴリ',
+              example: 'work'
+            },
+            tags: {
+              type: 'array',
+              items: {
+                type: 'string'
+              },
+              description: 'タグ配列',
+              example: ['important', 'meeting']
+            },
+            repeatSettings: {
+              type: 'object',
+              nullable: true,
+              properties: {
+                interval: {
+                  type: 'string',
+                  enum: ['daily', 'weekly', 'monthly', 'yearly'],
+                  description: '繰り返し間隔'
+                },
+                endDate: {
+                  type: 'string',
+                  format: 'date-time',
+                  nullable: true,
+                  description: '繰り返し終了日'
+                },
+                maxOccurrences: {
+                  type: 'integer',
+                  nullable: true,
+                  description: '最大繰り返し回数'
+                },
+                currentOccurrence: {
+                  type: 'integer',
+                  description: '現在の繰り返し回数'
+                }
+              },
+              description: '繰り返し設定'
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: '作成日時'
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: '更新日時'
+            }
+          }
+        },
         Error: {
           type: 'object',
           properties: {
