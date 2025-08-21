@@ -1,6 +1,7 @@
 const express = require('express');
 const reminderStorage = require('../database/reminderStorage');
 const notificationService = require('../services/notificationService');
+const { parseFlexibleDate, formatReminderDates } = require('../utils/dateUtils');
 
 const router = express.Router();
 
@@ -84,7 +85,10 @@ router.get('/', async (req, res) => {
       reminders = reminders.filter(reminder => reminder.category === category);
     }
     
-    res.json(reminders);
+    // 日付フィールドを指定フォーマットに変換
+    const formattedReminders = reminders.map(formatReminderDates);
+    
+    res.json(formattedReminders);
   } catch (error) {
     console.error('Error fetching reminders:', error);
     res.status(500).json({ error: 'Failed to fetch reminders' });
@@ -132,7 +136,11 @@ router.get('/:id', async (req, res) => {
     if (!reminder) {
       return res.status(404).json({ error: 'Reminder not found' });
     }
-    res.json(reminder);
+    
+    // 日付フィールドを指定フォーマットに変換
+    const formattedReminder = formatReminderDates(reminder);
+    
+    res.json(formattedReminder);
   } catch (error) {
     console.error('Error fetching reminder:', error);
     res.status(500).json({ error: 'Failed to fetch reminder' });
@@ -237,10 +245,12 @@ router.post('/', async (req, res) => {
     }
 
     // 通知日時の検証
-    const notificationDate = new Date(notificationDateTime);
-    if (isNaN(notificationDate.getTime())) {
+    let notificationDate;
+    try {
+      notificationDate = parseFlexibleDate(notificationDateTime);
+    } catch (error) {
       return res.status(400).json({
-        error: 'Invalid notification date time format'
+        error: 'Invalid notification date time format. Expected format: "YYYY/M/D HH:MM" or ISO 8601'
       });
     }
 
@@ -269,10 +279,12 @@ router.post('/', async (req, res) => {
       }
 
       if (repeatSettings.endDate) {
-        const endDate = new Date(repeatSettings.endDate);
-        if (isNaN(endDate.getTime())) {
+        let endDate;
+        try {
+          endDate = parseFlexibleDate(repeatSettings.endDate);
+        } catch (error) {
           return res.status(400).json({
-            error: 'Invalid repeat end date format'
+            error: 'Invalid repeat end date format. Expected format: "YYYY/M/D HH:MM" or ISO 8601'
           });
         }
         if (endDate <= notificationDate) {
@@ -286,20 +298,23 @@ router.post('/', async (req, res) => {
     const newReminder = await reminderStorage.addReminder({ 
       title: title.trim(), 
       message, 
-      notificationDateTime,
+      notificationDateTime: notificationDate.toISOString(), // 内部ではISO形式で保存
       notificationMethod: notificationMethod || 'webhook',
       category,
       tags: Array.isArray(tags) ? tags : [],
       repeatSettings: repeatSettings ? {
         ...repeatSettings,
-        currentOccurrence: 1
+        currentOccurrence: 1,
+        endDate: repeatSettings.endDate ? parseFlexibleDate(repeatSettings.endDate).toISOString() : null
       } : null
     });
 
     // スケジュールに追加
     await notificationService.scheduleReminder(newReminder);
 
-    res.status(201).json(newReminder);
+    // レスポンスでは指定フォーマットで返す
+    const formattedReminder = formatReminderDates(newReminder);
+    res.status(201).json(formattedReminder);
   } catch (error) {
     console.error('Error creating reminder:', error);
     res.status(500).json({ error: 'Failed to create reminder' });
@@ -409,10 +424,12 @@ router.put('/:id', async (req, res) => {
     }
 
     if (notificationDateTime) {
-      const notificationDate = new Date(notificationDateTime);
-      if (isNaN(notificationDate.getTime())) {
+      let notificationDate;
+      try {
+        notificationDate = parseFlexibleDate(notificationDateTime);
+      } catch (error) {
         return res.status(400).json({
-          error: 'Invalid notification date time format'
+          error: 'Invalid notification date time format. Expected format: "YYYY/M/D HH:MM" or ISO 8601'
         });
       }
     }
@@ -438,7 +455,7 @@ router.put('/:id', async (req, res) => {
     const updateData = {
       ...(title !== undefined && { title: title.trim() }),
       ...(message !== undefined && { message }),
-      ...(notificationDateTime !== undefined && { notificationDateTime }),
+      ...(notificationDateTime !== undefined && { notificationDateTime: parseFlexibleDate(notificationDateTime).toISOString() }),
       ...(notificationMethod !== undefined && { notificationMethod }),
       ...(notificationStatus !== undefined && { notificationStatus }),
       ...(category !== undefined && { category }),
@@ -457,7 +474,9 @@ router.put('/:id', async (req, res) => {
       }
     }
 
-    res.json(updatedReminder);
+    // レスポンスでは指定フォーマットで返す
+    const formattedReminder = formatReminderDates(updatedReminder);
+    res.json(formattedReminder);
   } catch (error) {
     console.error('Error updating reminder:', error);
     res.status(500).json({ error: 'Failed to update reminder' });
