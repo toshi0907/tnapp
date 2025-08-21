@@ -70,6 +70,10 @@ function createApp() {
   app.get('/todo', (req, res) => {
     res.sendFile(path.join(publicDir, 'todo', 'index.html'));
   });
+  
+  app.get('/reminder', (req, res) => {
+    res.sendFile(path.join(publicDir, 'reminder', 'index.html'));
+  });
 
   // ルーター
   app.use('/api/bookmarks', bookmarkRouter);
