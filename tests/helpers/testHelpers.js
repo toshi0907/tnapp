@@ -101,11 +101,24 @@ function validateErrorResponse(response, expectedStatus, expectedError) {
   }
 }
 
+/**
+ * テスト用のBasic認証ヘッダーを作成
+ */
+function getAuthHeaders() {
+  const username = process.env.BASIC_AUTH_USERNAME || 'admin';
+  const password = process.env.BASIC_AUTH_PASSWORD || 'your-secure-password';
+  const credentials = Buffer.from(`${username}:${password}`).toString('base64');
+  return {
+    'Authorization': `Basic ${credentials}`
+  };
+}
+
 module.exports = {
   createTestDataDir,
   createTestBookmark,
   createTestBookmarks,
   cleanupTestFiles,
   validateBookmarkResponse,
-  validateErrorResponse
+  validateErrorResponse,
+  getAuthHeaders
 };

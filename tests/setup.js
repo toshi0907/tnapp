@@ -5,6 +5,7 @@
 // テスト環境変数の設定
 process.env.NODE_ENV = 'test';
 process.env.PORT = '3001'; // テスト用ポート
+process.env.BASIC_AUTH_ENABLED = 'false'; // テストでは認証を無効化
 
 // テストタイムアウトの設定
 jest.setTimeout(10000);

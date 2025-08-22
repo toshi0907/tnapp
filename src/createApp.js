@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const basicAuth = require('express-basic-auth');
 const { specs, swaggerUi, swaggerUiOptions, createSwaggerSetup } = require('./config/swagger');
 const bookmarkRouter = require('./routes/bookmarks');
 const todoRouter = require('./routes/todos');
@@ -22,6 +23,21 @@ function createApp() {
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Basic Authentication middleware (conditional)
+  const authEnabled = process.env.BASIC_AUTH_ENABLED === 'true';
+  if (authEnabled) {
+    const authMiddleware = basicAuth({
+      users: {
+        [process.env.BASIC_AUTH_USERNAME || 'admin']: process.env.BASIC_AUTH_PASSWORD || 'your-secure-password'
+      },
+      challenge: true,
+      realm: 'TN API Server'
+    });
+    
+    // Apply auth to API endpoints only, exclude health check and config
+    app.use('/api', authMiddleware);
+  }
 
   // ヘルスチェック
   const bookmarkStorage = require('./database/bookmarkStorage');
@@ -58,7 +74,12 @@ function createApp() {
   // 設定情報エンドポイント
   app.get('/config', (req, res) => {
     res.json({
-      port: process.env.PORT || 3000
+      port: process.env.PORT || 3000,
+      authEnabled: process.env.BASIC_AUTH_ENABLED === 'true',
+      // Note: In production, credentials should never be exposed via API
+      // This is for demo/development purposes only
+      authUsername: process.env.BASIC_AUTH_USERNAME || 'admin',
+      authPassword: process.env.BASIC_AUTH_PASSWORD || 'your-secure-password'
     });
   });
 

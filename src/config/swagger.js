@@ -54,14 +54,19 @@ const options = {
       }
     },
     servers: createSwaggerServers(),
+    security: [
+      {
+        basicAuth: []
+      }
+    ],
     components: {
-      // securitySchemes: {
-      //   basicAuth: {
-      //     type: 'http',
-      //     scheme: 'basic',
-      //     description: 'Basic認証 (username: admin, password: your-secure-password)'
-      //   }
-      // },
+      securitySchemes: {
+        basicAuth: {
+          type: 'http',
+          scheme: 'basic',
+          description: 'Basic認証 (username: admin, password: your-secure-password)'
+        }
+      },
       schemas: {
         Bookmark: {
           type: 'object',

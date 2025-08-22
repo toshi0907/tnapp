@@ -26,7 +26,10 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
         .expect(200);
 
       expect(response.body).toEqual({
-        port: 3000
+        port: 3000,
+        authEnabled: false,
+        authUsername: 'admin',
+        authPassword: 'your-secure-password'
       });
 
       // 環境変数を復元
@@ -46,7 +49,10 @@ describe('ポート設定テスト - Port Configuration Tests', () => {
         .expect(200);
 
       expect(response.body).toEqual({
-        port: '3005'
+        port: '3005',
+        authEnabled: false,
+        authUsername: 'admin',
+        authPassword: 'your-secure-password'
       });
 
       // 環境変数を復元
