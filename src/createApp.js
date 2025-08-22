@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const { specs, swaggerUi, swaggerUiOptions } = require('./config/swagger');
+const { specs, swaggerUi, swaggerUiOptions, createSwaggerSetup } = require('./config/swagger');
 const bookmarkRouter = require('./routes/bookmarks');
 const todoRouter = require('./routes/todos');
 const reminderRouter = require('./routes/reminders');
@@ -11,8 +11,12 @@ require('dotenv').config();
 function createApp() {
   const app = express();
 
-  // Swagger
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, swaggerUiOptions));
+  // Swagger - with dynamic server configuration
+  app.use('/api-docs', swaggerUi.serve);
+  app.get('/api-docs', (req, res, next) => {
+    const dynamicSpecs = createSwaggerSetup(req);
+    swaggerUi.setup(dynamicSpecs, swaggerUiOptions)(req, res, next);
+  });
 
   app.use(helmet());
   app.use(cors());

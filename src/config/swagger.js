@@ -4,6 +4,39 @@ const swaggerUi = require('swagger-ui-express');
 // Load environment variables
 require('dotenv').config();
 
+// Function to create server configuration based on request context
+function createSwaggerServers(req) {
+  const servers = [];
+  
+  if (req) {
+    // Dynamic server URL based on the actual request
+    const protocol = req.protocol || (req.headers['x-forwarded-proto'] || 'http');
+    const host = req.get('host') || `localhost:${process.env.PORT || 3000}`;
+    const serverUrl = `${protocol}://${host}`;
+    
+    servers.push({
+      url: serverUrl,
+      description: 'Current server'
+    });
+  }
+  
+  // Fallback servers for different environments
+  servers.push({
+    url: `http://localhost:${process.env.PORT || 3000}`,
+    description: 'Development server (localhost)'
+  });
+  
+  // Production server (if different from current)
+  if (process.env.NODE_ENV === 'production') {
+    servers.push({
+      url: `https://localhost:${process.env.PORT || 3000}`,
+      description: 'Production server (HTTPS)'
+    });
+  }
+  
+  return servers;
+}
+
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -20,12 +53,7 @@ const options = {
         url: 'https://opensource.org/licenses/ISC'
       }
     },
-    servers: [
-      {
-        url: `http://localhost:${process.env.PORT || 3000}`,
-        description: 'Development server'
-      }
-    ],
+    servers: createSwaggerServers(),
     components: {
       securitySchemes: {
         basicAuth: {
@@ -283,9 +311,19 @@ const options = {
 
 const specs = swaggerJsdoc(options);
 
+// Function to create Swagger setup with dynamic servers
+function createSwaggerSetup(req) {
+  const dynamicSpecs = {
+    ...specs,
+    servers: createSwaggerServers(req)
+  };
+  return dynamicSpecs;
+}
+
 module.exports = {
   specs,
   swaggerUi,
+  createSwaggerSetup,
   swaggerUiOptions: {
     customSiteTitle: 'Totos API Documentation',
     customCss: `
