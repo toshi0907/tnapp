@@ -204,9 +204,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const metaParts = [];
     
-    if (todo.priority) {
-      metaParts.push(`Priority: ${todo.priority.toUpperCase()}`);
-    }
+    // Priority display removed to save vertical space
     
     if (todo.dueDate) {
       const dateInfo = formatDate(todo.dueDate);
@@ -258,9 +256,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     div.appendChild(contentDiv);
     div.appendChild(actionsDiv);
     
-    // クリックで完了状態を切り替え (only on content area)
-    contentDiv.addEventListener('click', async () => {
-      await toggleTodo(todo.id);
+    // 長押しで完了状態を切り替え (1秒長押し)
+    let pressTimer = null;
+    
+    contentDiv.addEventListener('mousedown', () => {
+      pressTimer = setTimeout(async () => {
+        await toggleTodo(todo.id);
+        pressTimer = null;
+      }, 1000); // 1秒の長押し
+    });
+    
+    contentDiv.addEventListener('mouseup', () => {
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    });
+    
+    contentDiv.addEventListener('mouseleave', () => {
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    });
+    
+    // タッチデバイス対応
+    contentDiv.addEventListener('touchstart', () => {
+      pressTimer = setTimeout(async () => {
+        await toggleTodo(todo.id);
+        pressTimer = null;
+      }, 1000);
+    });
+    
+    contentDiv.addEventListener('touchend', () => {
+      if (pressTimer) {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
     });
     
     return div;
