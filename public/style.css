@@ -202,8 +202,8 @@ li { margin: .3rem 0; }
 }
 
 .todo-item { 
-  padding: .5rem; 
-  margin: .3rem 0; 
+  padding: .3rem .5rem; /* Reduced vertical padding from .5rem to .3rem */
+  margin: .2rem 0; /* Reduced margin from .3rem to .2rem */
   border-left: 3px solid #ddd; 
   background: #fff; 
   border-radius: .2rem;
