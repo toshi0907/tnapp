@@ -111,9 +111,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     tagsInput.value = todo.tags ? todo.tags.join(', ') : '';
     
     if (todo.dueDate) {
-      // Convert ISO string to datetime-local format
-      const date = new Date(todo.dueDate);
-      dueDateInput.value = date.toISOString().slice(0, 16);
+      // Convert ISO string to datetime-local format in JST
+      dueDateInput.value = convertToJSTDatetimeLocal(todo.dueDate);
     } else {
       dueDateInput.value = '';
     }
@@ -184,6 +183,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
     
     return { formatted, isOverdue };
+  }
+
+  // UTC日時を日本時間(JST)のdatetime-local形式に変換
+  function convertToJSTDatetimeLocal(dateString) {
+    // API からは日本時間形式 or ISO形式で返ってくる場合がある
+    // "2025/8/24 20:30" 形式をパース
+    const regex = /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/;
+    const match = dateString.match(regex);
+    
+    if (match) {
+      // 日本時間として解釈してdatetime-local形式に変換
+      const [, year, month, day, hour, minute] = match;
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${minute}`;
+    } else {
+      // ISO形式の場合は従来通りの変換
+      const date = new Date(dateString);
+      // 日本時間に変換（UTC+9時間）
+      const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+      // datetime-local形式に変換
+      return jstDate.toISOString().slice(0, 16);
+    }
   }
 
   // TODOアイテムのHTMLを生成

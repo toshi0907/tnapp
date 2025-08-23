@@ -92,6 +92,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // UTC日時を日本時間(JST)のdatetime-local形式に変換
+  function convertToJSTDatetimeLocal(dateString) {
+    // API からは "2025/8/24 20:30" 形式（既に日本時間）で返ってくる
+    // これを datetime-local 形式に変換する
+    
+    // "2025/8/24 20:30" 形式をパース
+    const regex = /^(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})$/;
+    const match = dateString.match(regex);
+    
+    if (match) {
+      // 日本時間として解釈してdatetime-local形式に変換
+      const [, year, month, day, hour, minute] = match;
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour.padStart(2, '0')}:${minute}`;
+    } else {
+      // ISO形式の場合は従来通りの変換
+      const date = new Date(dateString);
+      // 日本時間に変換（UTC+9時間）
+      const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+      // datetime-local形式に変換
+      return jstDate.toISOString().slice(0, 16);
+    }
+  }
+
   // リマインダー一覧を取得
   async function fetchReminders() {
     try {
@@ -301,7 +324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // 日時の変換（APIから受け取った形式を datetime-local に変換）
     const notificationDate = new Date(reminder.notificationDateTime);
-    document.getElementById('notification-datetime').value = notificationDate.toISOString().slice(0, 16);
+    document.getElementById('notification-datetime').value = convertToJSTDatetimeLocal(reminder.notificationDateTime);
     
     document.getElementById('notification-method').value = reminder.notificationMethod;
     document.getElementById('category-input').value = reminder.category || '';
@@ -313,8 +336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       repeatSettings.style.display = 'block';
       document.getElementById('repeat-interval').value = reminder.repeatSettings.interval || '';
       if (reminder.repeatSettings.endDate) {
-        const endDate = new Date(reminder.repeatSettings.endDate);
-        document.getElementById('repeat-end-date').value = endDate.toISOString().slice(0, 16);
+        document.getElementById('repeat-end-date').value = convertToJSTDatetimeLocal(reminder.repeatSettings.endDate);
       }
       document.getElementById('max-occurrences').value = reminder.repeatSettings.maxOccurrences || '';
     } else {
