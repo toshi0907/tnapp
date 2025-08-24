@@ -93,8 +93,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       if (!res.ok) throw new Error('Failed to load results');
       
-      const data = await res.json();
-      const results = data.results || [];
+      let results = await res.json();
+      
+      if (!Array.isArray(results)) {
+        results = [];
+      }
       
       if (results.length === 0) {
         resultsContainer.innerHTML = '<p style="color: #666;">結果がありません。</p>';
@@ -106,7 +109,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
             <div style="flex: 1;">
               <div style="font-weight: bold; color: #333; margin-bottom: 0.25rem;">
-                ${result.status === 'success' ? '✅' : '❌'} ${formatDate(result.executedAt)}
+                ${result.status === 'success' ? '✅' : '❌'} ${formatDate(result.createdAt)}
               </div>
               <div style="font-size: 0.85rem; color: #666;">
                 ${result.category ? `📂 ${result.category}` : ''}
