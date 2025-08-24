@@ -54,6 +54,14 @@ form { margin: 1rem 0; }
   border-left-color: #7b1fa2;
 }
 
+.nav-card.gemini {
+  border-left-color: #673ab7;
+}
+
+.nav-card.gemini:hover {
+  border-left-color: #512da8;
+}
+
 .nav-card.api {
   border-left-color: #ff9800;
 }
@@ -459,4 +467,75 @@ li { margin: .3rem 0; }
   padding: .5rem;
   background: #f5f5f5;
   border-radius: .3rem;
+}
+
+/* Gemini-specific styling */
+#gemini-form input, #gemini-form select, #gemini-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ddd;
+  border-radius: .3rem;
+  font-family: inherit;
+  padding: .4rem .6rem;
+  font-size: .9rem;
+}
+
+#gemini-form textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+#gemini-form button[type="submit"] {
+  background: #673ab7;
+  color: white;
+  border: none;
+  padding: .6rem 1.2rem;
+  border-radius: .3rem;
+  cursor: pointer;
+  font-size: .9rem;
+  font-weight: bold;
+}
+
+#gemini-form button[type="submit"]:hover {
+  background: #512da8;
+}
+
+.result-item {
+  transition: all 0.2s ease;
+}
+
+.result-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+#search-input {
+  flex: 1;
+  min-width: 200px;
+}
+
+#refresh-btn {
+  background: #17a2b8;
+  color: white;
+  border: none;
+  padding: .4rem .8rem;
+  border-radius: .3rem;
+  cursor: pointer;
+  font-size: .9rem;
+}
+
+#refresh-btn:hover {
+  background: #138496;
+}
+
+details {
+  margin-top: 2rem;
+  border: 1px solid #e0e0e0;
+  border-radius: .5rem;
+  padding: 1rem;
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: bold;
+  color: #673ab7;
 }
