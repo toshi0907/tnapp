@@ -140,8 +140,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // URLからドメインを抽出してfavicon URLを生成
+  // URLからfavicon URLを生成（Hatenaのfaviconサービスを使用、フォールバックあり）
   function getFaviconUrl(url) {
+    try {
+      // Validate URL format
+      new URL(url);
+      // Use Hatena favicon service
+      return `https://cdn-ak.favicon.st-hatena.com/?url=${encodeURIComponent(url)}`;
+    } catch (e) {
+      // Invalid URL, return a default icon
+      return 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="%23666"><rect width="16" height="16" fill="%23ccc" rx="2"/><path d="M8 2l2 3h3l-2.5 3.5L13 12H3l2.5-3.5L3 5h3z" fill="%23666"/></svg>';
+    }
+  }
+
+  // フォールバック用のローカルSVG faviconを生成
+  function getLocalFaviconUrl(url) {
     try {
       const urlObj = new URL(url);
       const domain = urlObj.hostname;
@@ -180,6 +193,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     favicon.className = 'bookmark-favicon';
     favicon.src = getFaviconUrl(bookmark.url);
     favicon.alt = 'Site icon';
+    
+    // Add error handler to fallback to local SVG favicon if external service fails
+    favicon.onerror = function() {
+      this.src = getLocalFaviconUrl(bookmark.url);
+      this.onerror = null; // Prevent infinite loop
+    };
     
     const contentDiv = document.createElement('div');
     contentDiv.className = 'bookmark-content';
