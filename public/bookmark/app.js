@@ -145,11 +145,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const urlObj = new URL(url);
       const domain = urlObj.hostname;
-      // Google's favicon service for reliable favicon fetching
-      return `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
+      
+      // Create a domain-specific colored favicon using the first letter of the domain
+      const firstLetter = domain.charAt(0).toUpperCase();
+      // Generate a color based on the domain name for visual distinction
+      const colors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+      ];
+      const colorIndex = domain.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+      const backgroundColor = colors[colorIndex];
+      
+      // Create an SVG favicon with the first letter and domain-specific color
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+        <rect width="16" height="16" fill="${backgroundColor}" rx="2"/>
+        <text x="8" y="11" font-family="Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" fill="white">${firstLetter}</text>
+      </svg>`;
+      
+      return `data:image/svg+xml,${encodeURIComponent(svg)}`;
     } catch (e) {
       // Invalid URL, return a default icon
-      return 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="%23666"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+      return 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="%23666"><rect width="16" height="16" fill="%23ccc" rx="2"/><path d="M8 2l2 3h3l-2.5 3.5L13 12H3l2.5-3.5L3 5h3z" fill="%23666"/></svg>';
     }
   }
 
@@ -164,10 +180,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     favicon.className = 'bookmark-favicon';
     favicon.src = getFaviconUrl(bookmark.url);
     favicon.alt = 'Site icon';
-    favicon.onerror = function() {
-      // Fallback to a generic icon if favicon fails to load
-      this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="%23666"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
-    };
     
     const contentDiv = document.createElement('div');
     contentDiv.className = 'bookmark-content';
