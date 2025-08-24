@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       <span id="text-${id}">
         ${truncated}
         <span id="remaining-${id}" style="display: none;">${remaining}</span>
-        <button onclick="toggleText('${id}')" style="background: none; border: none; color: #007bff; cursor: pointer; font-size: 0.8rem; margin-left: 0.5rem;" id="toggle-btn-${id}">
+        <button class="toggle-text-btn" data-text-id="${id}" style="background: none; border: none; color: #007bff; cursor: pointer; font-size: 0.8rem; margin-left: 0.5rem;" id="toggle-btn-${id}">
           もっと見る
         </button>
       </span>
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ${result.scheduledJob ? ' | ⏰ 自動実行' : ' | 👤 手動実行'}
               </div>
             </div>
-            <button onclick="deleteResult('${result.id}')" style="background: #dc3545; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.8rem;">削除</button>
+            <button class="delete-btn" data-result-id="${result.id}" style="background: #dc3545; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.8rem;">削除</button>
           </div>
           
           <div style="margin-bottom: 0.75rem;">
@@ -249,6 +249,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   categoryFilter.addEventListener('change', loadResults);
   statusFilter.addEventListener('change', loadResults);
 
+  // 動的に追加される削除ボタンのイベント委譲
+  resultsContainer.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('delete-btn')) {
+      const resultId = e.target.getAttribute('data-result-id');
+      await deleteResult(resultId);
+    }
+    
+    if (e.target.classList.contains('toggle-text-btn')) {
+      const textId = e.target.getAttribute('data-text-id');
+      toggleText(textId);
+    }
+  });
+
   // グローバル関数として定義（HTMLから呼び出せるように）
   window.deleteResult = deleteResult;
   
@@ -256,12 +269,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const remainingSpan = document.getElementById(`remaining-${id}`);
     const toggleBtn = document.getElementById(`toggle-btn-${id}`);
     
-    if (remainingSpan.style.display === 'none') {
-      remainingSpan.style.display = 'inline';
-      toggleBtn.textContent = '閉じる';
-    } else {
-      remainingSpan.style.display = 'none';
-      toggleBtn.textContent = 'もっと見る';
+    if (remainingSpan && toggleBtn) {
+      if (remainingSpan.style.display === 'none') {
+        remainingSpan.style.display = 'inline';
+        toggleBtn.textContent = '閉じる';
+      } else {
+        remainingSpan.style.display = 'none';
+        toggleBtn.textContent = 'もっと見る';
+      }
     }
   };
 
