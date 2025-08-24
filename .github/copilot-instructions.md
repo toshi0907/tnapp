@@ -335,6 +335,10 @@ tnapp/
 
 ## コーディング規約
 
+### 共通
+- コメントは日本語で記述
+- 処理のまとまり毎にコメントによる説明を記述
+
 ### JavaScript/Node.js
 - **ES6+構文**: async/await, アロー関数、分割代入等を積極使用
 - **エラーハンドリング**: try-catch文で適切な例外処理
@@ -428,6 +432,7 @@ tnapp/
 5. 単体テスト作成（モック使用）
 6. E2Eテスト作成（実際のサーバー使用）
 7. README更新
+8. copilot-instruction.mdの更新
 
 ### Storageクラス実装パターン
 ```javascript
