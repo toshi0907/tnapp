@@ -1,45 +1,64 @@
-const swaggerJsdoc = require('swagger-jsdoc');
-const swaggerUi = require('swagger-ui-express');
+/**
+ * Swagger API仕様書設定ファイル
+ * OpenAPI 3.0仕様に基づくインタラクティブなAPI仕様書を生成・提供
+ * 動的サーバー設定、スキーマ定義、UIカスタマイズを含む
+ */
 
-// Load environment variables
+// Swagger関連のライブラリをインポート
+const swaggerJsdoc = require('swagger-jsdoc');    // JSDocコメントからOpenAPI仕様を生成
+const swaggerUi = require('swagger-ui-express');  // Swagger UIのExpress統合
+
+// 環境変数を読み込み
 require('dotenv').config();
 
-// Function to create server configuration based on request context
+/**
+ * リクエストコンテキストに基づいて動的サーバー設定を作成する関数
+ * 実際のアクセス環境に合わせてSwagger UIで使用可能なサーバーURLを生成
+ * @param {Object} req - Expressリクエストオブジェクト（オプショナル）
+ * @returns {Array} サーバー設定オブジェクトの配列
+ */
 function createSwaggerServers(req) {
+  // サーバー設定を格納する配列
   const servers = [];
   
+  // リクエストオブジェクトが提供されている場合（実際のアクセス時）
   if (req) {
-    // Dynamic server URL based on the actual request
-    const protocol = req.protocol || (req.headers['x-forwarded-proto'] || 'http');
-    const host = req.get('host') || `localhost:${process.env.PORT || 3000}`;
+    // 動的サーバーURL を実際のリクエスト情報から構築
+    const protocol = req.protocol || (req.headers['x-forwarded-proto'] || 'http');  // HTTP/HTTPS判定
+    const host = req.get('host') || `localhost:${process.env.PORT || 3000}`;        // ホスト名:ポート
     const serverUrl = `${protocol}://${host}`;
     
+    // 現在アクセス中のサーバーを最優先で追加
     servers.push({
       url: serverUrl,
-      description: 'Current server'
+      description: 'Current server'  // 現在のサーバー
     });
   }
   
-  // Fallback servers for different environments
+  // 開発環境用のフォールバックサーバー（localhost）
   servers.push({
     url: `http://localhost:${process.env.PORT || 3000}`,
-    description: 'Development server (localhost)'
+    description: 'Development server (localhost)'  // 開発サーバー（localhost）
   });
   
-  // Production server (if different from current)
+  // プロダクション環境の場合はHTTPSサーバーも追加
   if (process.env.NODE_ENV === 'production') {
     servers.push({
       url: `https://localhost:${process.env.PORT || 3000}`,
-      description: 'Production server (HTTPS)'
+      description: 'Production server (HTTPS)'  // プロダクションサーバー（HTTPS）
     });
   }
   
   return servers;
 }
 
+// Swagger JSDoc の設定オプション
 const options = {
   definition: {
+    // OpenAPI仕様のバージョン
     openapi: '3.0.0',
+    
+    // API情報の定義
     info: {
       title: 'Totos API Server',
       version: '1.0.0',
