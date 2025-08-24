@@ -1,6 +1,7 @@
 const bookmarkStorage = require('./database/bookmarkStorage');
 const todoStorage = require('./database/todoStorage');
 const reminderStorage = require('./database/reminderStorage');
+const geminiStorage = require('./database/geminiStorage');
 
 async function initializeData() {
   try {
@@ -152,6 +153,57 @@ async function initializeData() {
       console.log('✅ Sample reminders initialized successfully');
     } else {
       console.log(`🔔 Database already contains ${existingReminders.length} reminders`);
+    }
+
+    // Geminiデータの初期化
+    const existingGeminiResults = await geminiStorage.getGeminiResults();
+    
+    if (existingGeminiResults.length === 0) {
+      // サンプルGemini結果を追加（成功例）
+      await geminiStorage.addGeminiResult({
+        prompt: 'Explain how AI works in a few words',
+        response: 'AI mimics human intelligence by using algorithms and data to learn patterns, make predictions, and solve problems autonomously.',
+        model: 'gemini-2.0-flash',
+        status: 'success',
+        executionTime: 1500,
+        tokensUsed: 25,
+        category: 'technology',
+        tags: ['ai', 'explanation', 'sample'],
+        scheduledBy: 'sample-data',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() // 2日前
+      });
+
+      await geminiStorage.addGeminiResult({
+        prompt: 'Share a useful programming tip',
+        response: 'Always write meaningful variable names and comments. Code is read more often than it\'s written, so clarity saves time and reduces bugs.',
+        model: 'gemini-2.0-flash',
+        status: 'success',
+        executionTime: 1200,
+        tokensUsed: 32,
+        category: 'programming',
+        tags: ['coding', 'tips', 'best-practices'],
+        scheduledBy: 'sample-data',
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() // 1日前
+      });
+
+      // サンプルGemini結果を追加（エラー例）
+      await geminiStorage.addGeminiResult({
+        prompt: 'Test prompt for error simulation',
+        response: null,
+        model: 'gemini-2.0-flash',
+        status: 'error',
+        errorMessage: 'API key not configured (sample error)',
+        executionTime: 500,
+        tokensUsed: null,
+        category: 'test',
+        tags: ['error', 'sample'],
+        scheduledBy: 'sample-data',
+        createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString() // 12時間前
+      });
+
+      console.log('✅ Sample Gemini results initialized successfully');
+    } else {
+      console.log(`🤖 Database already contains ${existingGeminiResults.length} Gemini results`);
     }
   } catch (error) {
     console.error('❌ Error initializing data:', error);

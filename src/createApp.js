@@ -5,6 +5,7 @@ const { specs, swaggerUi, swaggerUiOptions, createSwaggerSetup } = require('./co
 const bookmarkRouter = require('./routes/bookmarks');
 const todoRouter = require('./routes/todos');
 const reminderRouter = require('./routes/reminders');
+const geminiRouter = require('./routes/gemini');
 const path = require('path');
 require('dotenv').config();
 
@@ -27,6 +28,7 @@ function createApp() {
   const bookmarkStorage = require('./database/bookmarkStorage');
   const todoStorage = require('./database/todoStorage');
   const reminderStorage = require('./database/reminderStorage');
+  const geminiStorage = require('./database/geminiStorage');
   app.get('/health', async (req, res) => {
     try {
       const bookmarkCount = await bookmarkStorage.getBookmarkCount();
@@ -36,12 +38,16 @@ function createApp() {
       const reminderCount = await reminderStorage.getReminderCount();
       const pendingReminders = await reminderStorage.getPendingCount();
       const sentReminders = await reminderStorage.getSentCount();
+      const geminiCount = await geminiStorage.getGeminiResultCount();
+      const geminiSuccessful = await geminiStorage.getSuccessCount();
+      const geminiFailed = await geminiStorage.getFailedCount();
       res.status(200).json({
         status: 'OK',
         message: 'API Server is running',
         database: 'JSON File Storage',
         bookmarkCount, todoCount, completedTodos, pendingTodos,
         reminderCount, pendingReminders, sentReminders,
+        geminiCount, geminiSuccessful, geminiFailed,
         timestamp: new Date().toISOString()
       });
     } catch {
@@ -58,7 +64,8 @@ function createApp() {
   // 設定情報エンドポイント
   app.get('/config', (req, res) => {
     res.json({
-      port: process.env.PORT || 3000
+      port: process.env.PORT || 3000,
+      authEnabled: process.env.BASIC_AUTH_ENABLED !== 'false'
     });
   });
 
@@ -67,6 +74,10 @@ function createApp() {
   app.use('/public', express.static(publicDir));
   
   // フロントエンドページのルーティング
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+  
   app.get('/bookmark', (req, res) => {
     res.sendFile(path.join(publicDir, 'bookmark', 'index.html'));
   });
@@ -78,11 +89,16 @@ function createApp() {
   app.get('/reminder', (req, res) => {
     res.sendFile(path.join(publicDir, 'reminder', 'index.html'));
   });
+  
+  app.get('/gemini', (req, res) => {
+    res.sendFile(path.join(publicDir, 'gemini', 'index.html'));
+  });
 
   // ルーター
   app.use('/api/bookmarks', bookmarkRouter);
   app.use('/api/todos', todoRouter);
   app.use('/api/reminders', reminderRouter);
+  app.use('/api/gemini', geminiRouter);
 
   // 404
   app.use('*', (req, res) => {
