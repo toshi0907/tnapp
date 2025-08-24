@@ -140,11 +140,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // URLからドメインを抽出してfavicon URLを生成
+  function getFaviconUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      // Google's favicon service for reliable favicon fetching
+      return `https://www.google.com/s2/favicons?domain=${domain}&sz=16`;
+    } catch (e) {
+      // Invalid URL, return a default icon
+      return 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="%23666"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+    }
+  }
+
   // ブックマークアイテムのHTMLを生成
   function createBookmarkElement(bookmark) {
     const div = document.createElement('div');
     div.className = 'bookmark-item';
     div.setAttribute('data-bookmark-id', bookmark.id);
+    
+    // Favicon element
+    const favicon = document.createElement('img');
+    favicon.className = 'bookmark-favicon';
+    favicon.src = getFaviconUrl(bookmark.url);
+    favicon.alt = 'Site icon';
+    favicon.onerror = function() {
+      // Fallback to a generic icon if favicon fails to load
+      this.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="%23666"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>';
+    };
     
     const contentDiv = document.createElement('div');
     contentDiv.className = 'bookmark-content';
@@ -205,6 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Show/hide actions based on edit-enable checkbox
     actionsDiv.style.display = editEnable.checked ? 'flex' : 'none';
     
+    div.appendChild(favicon);
     div.appendChild(contentDiv);
     div.appendChild(actionsDiv);
     

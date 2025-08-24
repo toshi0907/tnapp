@@ -19,7 +19,14 @@ function createApp() {
     swaggerUi.setup(dynamicSpecs, swaggerUiOptions)(req, res, next);
   });
 
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": ["'self'", "data:", "https://www.google.com"]
+      }
+    }
+  }));
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
