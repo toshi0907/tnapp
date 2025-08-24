@@ -180,6 +180,80 @@ class GeminiStorage {
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, limit);
   }
+
+  // スケジュール済みプロンプト管理
+  async getScheduledPrompts() {
+    const filePath = path.join(this.dataDir, 'gemini-scheduled.json');
+    try {
+      await fs.access(filePath);
+      const data = await fs.readFile(filePath, 'utf-8');
+      return JSON.parse(data);
+    } catch {
+      // ファイルが存在しない場合は空配列を返す
+      return [];
+    }
+  }
+
+  async saveScheduledPrompts(prompts) {
+    const filePath = path.join(this.dataDir, 'gemini-scheduled.json');
+    await fs.mkdir(this.dataDir, { recursive: true });
+    await fs.writeFile(filePath, JSON.stringify(prompts, null, 2));
+  }
+
+  async addScheduledPrompt(promptData) {
+    const prompts = await this.getScheduledPrompts();
+    const newPrompt = {
+      id: Date.now().toString(),
+      name: promptData.name,
+      prompt: promptData.prompt,
+      category: promptData.category || 'scheduled',
+      tags: promptData.tags || [],
+      cronExpression: promptData.cronExpression,
+      enabled: promptData.enabled !== false,
+      createdAt: new Date().toISOString(),
+      ...promptData
+    };
+    
+    prompts.push(newPrompt);
+    await this.saveScheduledPrompts(prompts);
+    return newPrompt;
+  }
+
+  async updateScheduledPrompt(id, updateData) {
+    const prompts = await this.getScheduledPrompts();
+    const index = prompts.findIndex(p => p.id === id);
+    
+    if (index === -1) {
+      return null;
+    }
+    
+    prompts[index] = {
+      ...prompts[index],
+      ...updateData,
+      updatedAt: new Date().toISOString()
+    };
+    
+    await this.saveScheduledPrompts(prompts);
+    return prompts[index];
+  }
+
+  async deleteScheduledPrompt(id) {
+    const prompts = await this.getScheduledPrompts();
+    const index = prompts.findIndex(p => p.id === id);
+    
+    if (index === -1) {
+      return false;
+    }
+    
+    prompts.splice(index, 1);
+    await this.saveScheduledPrompts(prompts);
+    return true;
+  }
+
+  async getScheduledPromptById(id) {
+    const prompts = await this.getScheduledPrompts();
+    return prompts.find(p => p.id === id);
+  }
 }
 
 module.exports = new GeminiStorage();

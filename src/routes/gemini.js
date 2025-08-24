@@ -236,6 +236,261 @@ router.get('/meta/stats', async (req, res) => {
 
 /**
  * @swagger
+ * /api/gemini/scheduled:
+ *   get:
+ *     summary: スケジュール済みプロンプト一覧取得
+ *     description: スケジュール済みプロンプトの一覧を取得
+ *     tags: [Gemini]
+ *     responses:
+ *       200:
+ *         description: スケジュール済みプロンプト一覧
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/ScheduledPrompt'
+ */
+// スケジュール済みプロンプト一覧取得
+router.get('/scheduled', async (req, res) => {
+  try {
+    const scheduledPrompts = await geminiService.getScheduledPrompts();
+    res.json(scheduledPrompts);
+  } catch (error) {
+    console.error('Error fetching scheduled prompts:', error);
+    res.status(500).json({ error: 'Failed to fetch scheduled prompts' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/gemini/scheduled:
+ *   post:
+ *     summary: スケジュール済みプロンプト作成
+ *     description: 新しいスケジュール済みプロンプトを作成
+ *     tags: [Gemini]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - prompt
+ *               - cronExpression
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: プロンプト名
+ *               prompt:
+ *                 type: string
+ *                 description: プロンプト内容
+ *               cronExpression:
+ *                 type: string
+ *                 description: "cron式（例: '0 9 * * *'）"
+ *               category:
+ *                 type: string
+ *                 description: カテゴリ
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: タグ
+ *               enabled:
+ *                 type: boolean
+ *                 description: 有効/無効
+ *     responses:
+ *       201:
+ *         description: スケジュール済みプロンプト作成成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ScheduledPrompt'
+ */
+// スケジュール済みプロンプト作成
+router.post('/scheduled', async (req, res) => {
+  try {
+    const { name, prompt, cronExpression, category, tags, enabled } = req.body;
+    
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ error: 'Name is required and must be a non-empty string' });
+    }
+    
+    if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+      return res.status(400).json({ error: 'Prompt is required and must be a non-empty string' });
+    }
+    
+    if (!cronExpression || typeof cronExpression !== 'string') {
+      return res.status(400).json({ error: 'Cron expression is required' });
+    }
+    
+    // cron式の簡単な検証
+    const cronParts = cronExpression.split(' ');
+    if (cronParts.length !== 5) {
+      return res.status(400).json({ error: 'Invalid cron expression format. Expected 5 parts (minute hour day month dayOfWeek)' });
+    }
+    
+    const scheduledPrompt = await geminiService.createScheduledPrompt({
+      name: name.trim(),
+      prompt: prompt.trim(),
+      cronExpression,
+      category: category || 'scheduled',
+      tags: tags || [],
+      enabled: enabled !== false
+    });
+    
+    res.status(201).json(scheduledPrompt);
+  } catch (error) {
+    console.error('Error creating scheduled prompt:', error);
+    res.status(500).json({ error: 'Failed to create scheduled prompt' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/gemini/scheduled/{id}:
+ *   get:
+ *     summary: スケジュール済みプロンプト詳細取得
+ *     description: 指定されたIDのスケジュール済みプロンプト詳細を取得
+ *     tags: [Gemini]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: スケジュール済みプロンプトID
+ *     responses:
+ *       200:
+ *         description: スケジュール済みプロンプト詳細
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ScheduledPrompt'
+ *       404:
+ *         description: プロンプトが見つからない
+ */
+// スケジュール済みプロンプト詳細取得
+router.get('/scheduled/:id', async (req, res) => {
+  try {
+    const scheduledPrompt = await geminiService.getScheduledPromptById(req.params.id);
+    if (!scheduledPrompt) {
+      return res.status(404).json({ error: 'Scheduled prompt not found' });
+    }
+    res.json(scheduledPrompt);
+  } catch (error) {
+    console.error('Error fetching scheduled prompt:', error);
+    res.status(500).json({ error: 'Failed to fetch scheduled prompt' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/gemini/scheduled/{id}:
+ *   put:
+ *     summary: スケジュール済みプロンプト更新
+ *     description: 指定されたスケジュール済みプロンプトを更新
+ *     tags: [Gemini]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: スケジュール済みプロンプトID
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               prompt:
+ *                 type: string
+ *               cronExpression:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               enabled:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: 更新成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ScheduledPrompt'
+ *       404:
+ *         description: プロンプトが見つからない
+ */
+// スケジュール済みプロンプト更新
+router.put('/scheduled/:id', async (req, res) => {
+  try {
+    const updateData = req.body;
+    
+    // cron式の検証（提供された場合）
+    if (updateData.cronExpression && typeof updateData.cronExpression === 'string') {
+      const cronParts = updateData.cronExpression.split(' ');
+      if (cronParts.length !== 5) {
+        return res.status(400).json({ error: 'Invalid cron expression format. Expected 5 parts (minute hour day month dayOfWeek)' });
+      }
+    }
+    
+    const updatedPrompt = await geminiService.updateScheduledPrompt(req.params.id, updateData);
+    if (!updatedPrompt) {
+      return res.status(404).json({ error: 'Scheduled prompt not found' });
+    }
+    
+    res.json(updatedPrompt);
+  } catch (error) {
+    console.error('Error updating scheduled prompt:', error);
+    res.status(500).json({ error: 'Failed to update scheduled prompt' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/gemini/scheduled/{id}:
+ *   delete:
+ *     summary: スケジュール済みプロンプト削除
+ *     description: 指定されたスケジュール済みプロンプトを削除
+ *     tags: [Gemini]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: スケジュール済みプロンプトID
+ *     responses:
+ *       200:
+ *         description: 削除成功
+ *       404:
+ *         description: プロンプトが見つからない
+ */
+// スケジュール済みプロンプト削除
+router.delete('/scheduled/:id', async (req, res) => {
+  try {
+    const deleted = await geminiService.deleteScheduledPrompt(req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Scheduled prompt not found' });
+    }
+    
+    res.json({ message: 'Scheduled prompt deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting scheduled prompt:', error);
+    res.status(500).json({ error: 'Failed to delete scheduled prompt' });
+  }
+});
+
+/**
+ * @swagger
  * /api/gemini/test:
  *   post:
  *     summary: Gemini API接続テスト
@@ -462,6 +717,40 @@ router.delete('/:id', async (req, res) => {
  * @swagger
  * components:
  *   schemas:
+ *     ScheduledPrompt:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: プロンプトID
+ *         name:
+ *           type: string
+ *           description: プロンプト名
+ *         prompt:
+ *           type: string
+ *           description: プロンプト内容
+ *         cronExpression:
+ *           type: string
+ *           description: cron式
+ *         category:
+ *           type: string
+ *           description: カテゴリ
+ *         tags:
+ *           type: array
+ *           items:
+ *             type: string
+ *           description: タグ
+ *         enabled:
+ *           type: boolean
+ *           description: 有効/無効
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *           description: 作成日時
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ *           description: 更新日時
  *     GeminiResult:
  *       type: object
  *       properties:

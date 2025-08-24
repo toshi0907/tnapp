@@ -33,8 +33,10 @@ class GeminiService {
     console.log('🔄 Initializing Gemini cron schedules...');
     
     try {
-      // Schedule daily Gemini API calls
-      // Run every day at 9:00 AM JST
+      // Load and schedule individual prompts
+      await this.loadScheduledPrompts();
+      
+      // Legacy: Schedule daily default prompts (keep for backward compatibility)
       const dailyJob = schedule.scheduleJob('0 9 * * *', async () => {
         await this.executeDailyPrompts();
       });
@@ -203,6 +205,114 @@ class GeminiService {
 
   listActiveJobs() {
     return Array.from(this.jobs.keys());
+  }
+
+  // スケジュール済みプロンプト管理
+  async loadScheduledPrompts() {
+    try {
+      const scheduledPrompts = await geminiStorage.getScheduledPrompts();
+      
+      // 既存のスケジュール済みジョブをクリア（defaultとlegacy以外）
+      for (const [name, job] of this.jobs.entries()) {
+        if (name !== 'daily-gemini' && name.startsWith('scheduled-')) {
+          job.cancel();
+          this.jobs.delete(name);
+        }
+      }
+      
+      // 有効なプロンプトをスケジュール
+      for (const promptConfig of scheduledPrompts) {
+        if (promptConfig.enabled && promptConfig.cronExpression) {
+          await this.schedulePrompt(promptConfig);
+        }
+      }
+      
+      console.log(`✅ Loaded ${scheduledPrompts.filter(p => p.enabled).length} scheduled prompts`);
+    } catch (error) {
+      console.error('❌ Error loading scheduled prompts:', error);
+    }
+  }
+
+  async schedulePrompt(promptConfig) {
+    const jobName = `scheduled-${promptConfig.id}`;
+    
+    try {
+      // 既存のジョブがあればキャンセル
+      if (this.jobs.has(jobName)) {
+        this.jobs.get(jobName).cancel();
+      }
+
+      const job = schedule.scheduleJob(promptConfig.cronExpression, async () => {
+        try {
+          await this.callGeminiAPI(
+            promptConfig.prompt,
+            promptConfig.category,
+            promptConfig.tags,
+            'scheduled'
+          );
+          console.log(`✅ Scheduled prompt "${promptConfig.name}" executed successfully`);
+        } catch (error) {
+          console.error(`❌ Scheduled prompt "${promptConfig.name}" failed:`, error.message);
+        }
+      });
+
+      this.jobs.set(jobName, job);
+      console.log(`📅 Scheduled prompt "${promptConfig.name}" with cron: ${promptConfig.cronExpression}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ Error scheduling prompt "${promptConfig.name}":`, error.message);
+      return false;
+    }
+  }
+
+  async createScheduledPrompt(promptData) {
+    const scheduledPrompt = await geminiStorage.addScheduledPrompt(promptData);
+    
+    if (scheduledPrompt.enabled && scheduledPrompt.cronExpression) {
+      await this.schedulePrompt(scheduledPrompt);
+    }
+    
+    return scheduledPrompt;
+  }
+
+  async updateScheduledPrompt(id, updateData) {
+    const updatedPrompt = await geminiStorage.updateScheduledPrompt(id, updateData);
+    
+    if (updatedPrompt) {
+      // 既存のジョブをキャンセル
+      const jobName = `scheduled-${id}`;
+      if (this.jobs.has(jobName)) {
+        this.jobs.get(jobName).cancel();
+        this.jobs.delete(jobName);
+      }
+      
+      // 有効な場合は再スケジュール
+      if (updatedPrompt.enabled && updatedPrompt.cronExpression) {
+        await this.schedulePrompt(updatedPrompt);
+      }
+    }
+    
+    return updatedPrompt;
+  }
+
+  async deleteScheduledPrompt(id) {
+    // スケジュールジョブをキャンセル
+    const jobName = `scheduled-${id}`;
+    if (this.jobs.has(jobName)) {
+      this.jobs.get(jobName).cancel();
+      this.jobs.delete(jobName);
+      console.log(`🚫 Cancelled scheduled job: ${jobName}`);
+    }
+    
+    return await geminiStorage.deleteScheduledPrompt(id);
+  }
+
+  async getScheduledPrompts() {
+    return await geminiStorage.getScheduledPrompts();
+  }
+
+  async getScheduledPromptById(id) {
+    return await geminiStorage.getScheduledPromptById(id);
   }
 }
 

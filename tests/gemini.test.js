@@ -32,7 +32,12 @@ jest.mock('../src/services/geminiService', () => {
     testGeminiAPI: jest.fn(),
     listActiveJobs: jest.fn(),
     scheduleCustomJob: jest.fn(),
-    cancelCustomJob: jest.fn()
+    cancelCustomJob: jest.fn(),
+    getScheduledPrompts: jest.fn(),
+    getScheduledPromptById: jest.fn(),
+    createScheduledPrompt: jest.fn(),
+    updateScheduledPrompt: jest.fn(),
+    deleteScheduledPrompt: jest.fn()
   };
 });
 
@@ -377,6 +382,166 @@ describe('Gemini API', () => {
       expect(response.body).toEqual({
         jobs: mockJobs,
         count: 2
+      });
+    });
+  });
+
+  describe('Scheduled Prompts API', () => {
+    describe('GET /api/gemini/scheduled', () => {
+      test('スケジュール済みプロンプト一覧取得に成功', async () => {
+        const mockScheduledPrompts = [
+          {
+            id: '1',
+            name: 'Daily Tech News',
+            prompt: 'Provide daily tech news',
+            cronExpression: '0 9 * * *',
+            category: 'technology',
+            tags: ['daily', 'tech'],
+            enabled: true,
+            createdAt: '2025-01-01T00:00:00.000Z'
+          }
+        ];
+
+        geminiService.getScheduledPrompts.mockResolvedValue(mockScheduledPrompts);
+
+        const response = await request(app)
+          .get('/api/gemini/scheduled')
+          .expect(200);
+
+        expect(response.body).toEqual(mockScheduledPrompts);
+      });
+    });
+
+    describe('POST /api/gemini/scheduled', () => {
+      test('スケジュール済みプロンプト作成に成功', async () => {
+        const newPrompt = {
+          name: 'Test Scheduled Prompt',
+          prompt: 'Test prompt content',
+          cronExpression: '0 10 * * *',
+          category: 'test',
+          tags: ['test'],
+          enabled: true
+        };
+
+        const mockCreatedPrompt = {
+          id: '123',
+          ...newPrompt,
+          createdAt: '2025-01-01T00:00:00.000Z'
+        };
+
+        geminiService.createScheduledPrompt.mockResolvedValue(mockCreatedPrompt);
+
+        const response = await request(app)
+          .post('/api/gemini/scheduled')
+          .send(newPrompt)
+          .expect(201);
+
+        expect(response.body).toEqual(mockCreatedPrompt);
+        expect(geminiService.createScheduledPrompt).toHaveBeenCalledWith(newPrompt);
+      });
+
+      test('必須フィールドが不足している場合のエラー', async () => {
+        await request(app)
+          .post('/api/gemini/scheduled')
+          .send({})
+          .expect(400);
+      });
+
+      test('無効なcron式の場合のエラー', async () => {
+        await request(app)
+          .post('/api/gemini/scheduled')
+          .send({
+            name: 'Test',
+            prompt: 'Test prompt',
+            cronExpression: 'invalid cron'
+          })
+          .expect(400);
+      });
+    });
+
+    describe('GET /api/gemini/scheduled/:id', () => {
+      test('特定のスケジュール済みプロンプト取得に成功', async () => {
+        const mockPrompt = {
+          id: '1',
+          name: 'Test Prompt',
+          prompt: 'Test content',
+          cronExpression: '0 9 * * *',
+          enabled: true
+        };
+
+        geminiService.getScheduledPromptById.mockResolvedValue(mockPrompt);
+
+        const response = await request(app)
+          .get('/api/gemini/scheduled/1')
+          .expect(200);
+
+        expect(response.body).toEqual(mockPrompt);
+      });
+
+      test('存在しないIDの場合404エラー', async () => {
+        geminiService.getScheduledPromptById.mockResolvedValue(null);
+
+        await request(app)
+          .get('/api/gemini/scheduled/999')
+          .expect(404);
+      });
+    });
+
+    describe('PUT /api/gemini/scheduled/:id', () => {
+      test('スケジュール済みプロンプト更新に成功', async () => {
+        const updateData = {
+          name: 'Updated Prompt',
+          enabled: false
+        };
+
+        const mockUpdatedPrompt = {
+          id: '1',
+          name: 'Updated Prompt',
+          prompt: 'Original prompt',
+          cronExpression: '0 9 * * *',
+          enabled: false,
+          updatedAt: '2025-01-01T00:00:00.000Z'
+        };
+
+        geminiService.updateScheduledPrompt.mockResolvedValue(mockUpdatedPrompt);
+
+        const response = await request(app)
+          .put('/api/gemini/scheduled/1')
+          .send(updateData)
+          .expect(200);
+
+        expect(response.body).toEqual(mockUpdatedPrompt);
+        expect(geminiService.updateScheduledPrompt).toHaveBeenCalledWith('1', updateData);
+      });
+
+      test('無効なcron式での更新エラー', async () => {
+        await request(app)
+          .put('/api/gemini/scheduled/1')
+          .send({
+            cronExpression: 'invalid'
+          })
+          .expect(400);
+      });
+    });
+
+    describe('DELETE /api/gemini/scheduled/:id', () => {
+      test('スケジュール済みプロンプト削除に成功', async () => {
+        geminiService.deleteScheduledPrompt.mockResolvedValue(true);
+
+        const response = await request(app)
+          .delete('/api/gemini/scheduled/1')
+          .expect(200);
+
+        expect(response.body).toHaveProperty('message');
+        expect(geminiService.deleteScheduledPrompt).toHaveBeenCalledWith('1');
+      });
+
+      test('存在しないプロンプトの削除で404エラー', async () => {
+        geminiService.deleteScheduledPrompt.mockResolvedValue(false);
+
+        await request(app)
+          .delete('/api/gemini/scheduled/999')
+          .expect(404);
       });
     });
   });

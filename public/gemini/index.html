@@ -57,6 +57,58 @@
     </div>
   </form>
 
+  <h2>⏰ スケジュール済みプロンプト</h2>
+  <div class="schedule-controls">
+    <button id="add-schedule-btn" style="background: #28a745; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; margin-bottom: 1rem;">➕ スケジュール追加</button>
+  </div>
+  <div id="scheduled-prompts-container" style="min-height: 100px; margin-bottom: 2rem;"></div>
+
+  <!-- スケジュール追加フォーム（モーダル風） -->
+  <div id="schedule-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: relative; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 0.5rem; max-width: 600px; width: 90%;">
+      <h3 id="schedule-modal-title">📅 スケジュール追加</h3>
+      <form id="schedule-form">
+        <div class="form-group">
+          <label for="schedule-name">プロンプト名 *</label>
+          <input id="schedule-name" name="name" required placeholder="例: 毎日の技術ニュース">
+        </div>
+        
+        <div class="form-group">
+          <label for="schedule-prompt">プロンプト *</label>
+          <textarea id="schedule-prompt" name="prompt" required rows="3" placeholder="Gemini AIに送信するプロンプトを入力してください..."></textarea>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="schedule-time">実行時間 *</label>
+            <input type="time" id="schedule-time" required>
+          </div>
+          <div class="form-group">
+            <label for="schedule-category">カテゴリ</label>
+            <input id="schedule-category" name="category" placeholder="scheduled">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="schedule-tags">タグ (カンマ区切り)</label>
+          <input id="schedule-tags" name="tags" placeholder="daily, automated">
+        </div>
+        
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="schedule-enabled" name="enabled" checked>
+            有効にする
+          </label>
+        </div>
+        
+        <div class="form-group">
+          <button type="submit" style="background: #007bff; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; margin-right: 0.5rem;">保存</button>
+          <button type="button" id="cancel-schedule-btn" style="background: #6c757d; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer;">キャンセル</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <details>
     <summary>📊 API統計情報</summary>
     <div id="stats-container">

@@ -7,6 +7,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const searchInput = document.getElementById('search-input');
   const refreshBtn = document.getElementById('refresh-btn');
   const statsContainer = document.getElementById('stats-container');
+  const addScheduleBtn = document.getElementById('add-schedule-btn');
+  const scheduleModal = document.getElementById('schedule-modal');
+  const scheduleForm = document.getElementById('schedule-form');
+  const cancelScheduleBtn = document.getElementById('cancel-schedule-btn');
+  const scheduledPromptsContainer = document.getElementById('scheduled-prompts-container');
   
   // 設定情報を動的に取得
   let API = '/api/gemini'; // Simple relative URL
@@ -205,6 +210,142 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // スケジュール済みプロンプト管理
+  async function loadScheduledPrompts() {
+    try {
+      const res = await fetch(`${API}/scheduled`, {
+        headers: authHeaders
+      });
+      if (!res.ok) throw new Error('Failed to load scheduled prompts');
+      
+      const prompts = await res.json();
+      
+      if (prompts.length === 0) {
+        scheduledPromptsContainer.innerHTML = '<p style="color: #666;">スケジュール済みプロンプトがありません。</p>';
+        return;
+      }
+      
+      scheduledPromptsContainer.innerHTML = prompts.map(prompt => {
+        const nextRunTime = getNextRunTime(prompt.cronExpression);
+        return `
+          <div class="schedule-item" style="border: 1px solid #e0e0e0; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; background: ${prompt.enabled ? '#fff' : '#f8f9fa'};">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+              <div style="flex: 1;">
+                <div style="font-weight: bold; color: #333; margin-bottom: 0.25rem;">
+                  ${prompt.enabled ? '✅' : '⏸️'} ${prompt.name}
+                </div>
+                <div style="font-size: 0.85rem; color: #666;">
+                  ⏰ ${formatCronExpression(prompt.cronExpression)}
+                  ${nextRunTime ? ` | 次回実行: ${nextRunTime}` : ''}
+                  ${prompt.category ? ` | 📂 ${prompt.category}` : ''}
+                </div>
+              </div>
+              <div>
+                <button class="edit-schedule-btn" data-schedule-id="${prompt.id}" style="background: #007bff; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.8rem; margin-right: 0.25rem;">編集</button>
+                <button class="delete-schedule-btn" data-schedule-id="${prompt.id}" style="background: #dc3545; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.8rem;">削除</button>
+              </div>
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 0.75rem; border-radius: 0.25rem; font-size: 0.9rem; color: #333; line-height: 1.4;">
+              ${prompt.prompt}
+            </div>
+            
+            ${prompt.tags && prompt.tags.length > 0 ? `
+              <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #666;">
+                🏷️ ${prompt.tags.join(', ')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+      
+    } catch (e) {
+      setMsg(e.message, false);
+      scheduledPromptsContainer.innerHTML = '<p style="color: #c00;">スケジュール済みプロンプトの読み込みに失敗しました。</p>';
+    }
+  }
+
+  function formatCronExpression(cronExpr) {
+    const parts = cronExpr.split(' ');
+    if (parts.length !== 5) return cronExpr;
+    
+    const [minute, hour, day, month, dayOfWeek] = parts;
+    
+    if (day === '*' && month === '*' && dayOfWeek === '*') {
+      return `毎日 ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+    }
+    
+    return cronExpr; // フォールバック
+  }
+
+  function getNextRunTime(cronExpr) {
+    try {
+      const parts = cronExpr.split(' ');
+      if (parts.length !== 5) return null;
+      
+      const [minute, hour] = parts;
+      const now = new Date();
+      const next = new Date();
+      next.setHours(parseInt(hour), parseInt(minute), 0, 0);
+      
+      if (next <= now) {
+        next.setDate(next.getDate() + 1);
+      }
+      
+      return next.toLocaleDateString('ja-JP') + ' ' + next.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function saveScheduledPrompt(promptData, isEdit = false, editId = null) {
+    try {
+      const method = isEdit ? 'PUT' : 'POST';
+      const url = isEdit ? `${API}/scheduled/${editId}` : `${API}/scheduled`;
+      
+      const res = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
+        body: JSON.stringify(promptData)
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to save scheduled prompt');
+      }
+      
+      setMsg(isEdit ? 'スケジュールを更新しました！' : 'スケジュールを追加しました！');
+      scheduleModal.style.display = 'none';
+      scheduleForm.reset();
+      loadScheduledPrompts();
+    } catch (e) {
+      setMsg(e.message, false);
+    }
+  }
+
+  async function deleteScheduledPrompt(scheduleId) {
+    if (!confirm('このスケジュールを削除しますか？')) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API}/scheduled/${scheduleId}`, {
+        method: 'DELETE',
+        headers: authHeaders
+      });
+      if (!res.ok) throw new Error('Failed to delete scheduled prompt');
+      setMsg('スケジュールを削除しました！');
+      loadScheduledPrompts();
+    } catch (e) {
+      setMsg(e.message, false);
+    }
+  }
+
+  let currentEditId = null;
+
   // フォーム送信
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -249,6 +390,44 @@ document.addEventListener('DOMContentLoaded', async () => {
   categoryFilter.addEventListener('change', loadResults);
   statusFilter.addEventListener('change', loadResults);
 
+  // スケジュール関連のイベントリスナー
+  addScheduleBtn.addEventListener('click', () => {
+    currentEditId = null;
+    document.getElementById('schedule-modal-title').textContent = '📅 スケジュール追加';
+    scheduleForm.reset();
+    document.getElementById('schedule-enabled').checked = true;
+    scheduleModal.style.display = 'block';
+  });
+
+  cancelScheduleBtn.addEventListener('click', () => {
+    scheduleModal.style.display = 'none';
+  });
+
+  scheduleForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(scheduleForm);
+    const timeValue = document.getElementById('schedule-time').value;
+    
+    if (!timeValue) {
+      setMsg('実行時間を選択してください', false);
+      return;
+    }
+    
+    const [hour, minute] = timeValue.split(':');
+    const cronExpression = `${minute} ${hour} * * *`; // 毎日指定時間
+    
+    const promptData = {
+      name: formData.get('name'),
+      prompt: formData.get('prompt'),
+      cronExpression: cronExpression,
+      category: formData.get('category') || 'scheduled',
+      tags: formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()).filter(Boolean) : [],
+      enabled: document.getElementById('schedule-enabled').checked
+    };
+
+    await saveScheduledPrompt(promptData, currentEditId !== null, currentEditId);
+  });
+
   // 動的に追加される削除ボタンのイベント委譲
   resultsContainer.addEventListener('click', async (e) => {
     if (e.target.classList.contains('delete-btn')) {
@@ -261,6 +440,51 @@ document.addEventListener('DOMContentLoaded', async () => {
       toggleText(textId);
     }
   });
+
+  // スケジュール済みプロンプトのイベント委譲
+  scheduledPromptsContainer.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('delete-schedule-btn')) {
+      const scheduleId = e.target.getAttribute('data-schedule-id');
+      await deleteScheduledPrompt(scheduleId);
+    }
+    
+    if (e.target.classList.contains('edit-schedule-btn')) {
+      const scheduleId = e.target.getAttribute('data-schedule-id');
+      await editScheduledPrompt(scheduleId);
+    }
+  });
+
+  async function editScheduledPrompt(scheduleId) {
+    try {
+      const res = await fetch(`${API}/scheduled/${scheduleId}`, {
+        headers: authHeaders
+      });
+      if (!res.ok) throw new Error('Failed to load scheduled prompt');
+      
+      const prompt = await res.json();
+      
+      // フォームに値を設定
+      document.getElementById('schedule-name').value = prompt.name;
+      document.getElementById('schedule-prompt').value = prompt.prompt;
+      document.getElementById('schedule-category').value = prompt.category || '';
+      document.getElementById('schedule-tags').value = prompt.tags ? prompt.tags.join(', ') : '';
+      document.getElementById('schedule-enabled').checked = prompt.enabled;
+      
+      // cron式から時間を抽出
+      const cronParts = prompt.cronExpression.split(' ');
+      if (cronParts.length >= 2) {
+        const hour = cronParts[1].padStart(2, '0');
+        const minute = cronParts[0].padStart(2, '0');
+        document.getElementById('schedule-time').value = `${hour}:${minute}`;
+      }
+      
+      currentEditId = scheduleId;
+      document.getElementById('schedule-modal-title').textContent = '📅 スケジュール編集';
+      scheduleModal.style.display = 'block';
+    } catch (e) {
+      setMsg(e.message, false);
+    }
+  }
 
   // グローバル関数として定義（HTMLから呼び出せるように）
   window.deleteResult = deleteResult;
@@ -284,4 +508,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadResults();
   loadCategories();
   loadStats();
+  loadScheduledPrompts();
 });
