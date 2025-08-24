@@ -1,30 +1,66 @@
-const fs = require('fs').promises;
-const path = require('path');
+/**
+ * リマインダーデータストレージクラス
+ * JSONファイルを使用してリマインダーデータの永続化を行う
+ * スケジュール管理、通知設定、繰り返し設定機能を提供
+ */
 
+// ファイルシステム操作とパス操作のモジュールをインポート
+const fs = require('fs').promises;  // ファイルシステム操作（Promise版）
+const path = require('path');       // パス操作ユーティリティ
+
+/**
+ * リマインダーデータの管理を行うクラス
+ * シングルトンパターンで実装され、JSONファイルによる永続化を提供
+ * 通知スケジューリング、繰り返し設定、通知手段管理をサポート
+ */
 class ReminderStorage {
+  /**
+   * コンストラクタ
+   * @param {string} filename - データファイル名（デフォルト: 'reminders.json'）
+   */
   constructor(filename = 'reminders.json') {
+    // データディレクトリのパスを設定（プロジェクトルート/data）
     this.dataDir = path.join(__dirname, '../../data');
+    // データファイルの完全パスを設定
     this.filePath = path.join(this.dataDir, filename);
   }
 
+  /**
+   * データファイルの存在確認と初期化
+   * ファイルが存在しない場合は空配列のJSONファイルを作成
+   */
   async ensureDataFile() {
     try {
+      // ファイルの存在確認（アクセス可能かチェック）
       await fs.access(this.filePath);
     } catch {
-      // データディレクトリが存在しない場合は作成
+      // ファイルが存在しない場合の初期化処理
+      
+      // データディレクトリが存在しない場合は再帰的に作成
       await fs.mkdir(this.dataDir, { recursive: true });
-      // 初期データファイルを作成
+      
+      // 空配列の初期データファイルを作成（整形されたJSON形式）
       await fs.writeFile(this.filePath, JSON.stringify([], null, 2));
     }
   }
 
+  /**
+   * データファイルからリマインダーデータを読み込む
+   * @returns {Array} リマインダーデータの配列
+   */
   async readData() {
+    // データファイルの存在確認・初期化
     await this.ensureDataFile();
+    
     try {
+      // ファイルからテキストデータを読み込み
       const data = await fs.readFile(this.filePath, 'utf-8');
+      // JSONテキストをJavaScriptオブジェクトに変換して返す
       return JSON.parse(data);
     } catch (error) {
+      // ファイル読み込みまたはJSON解析に失敗した場合
       console.error('Error reading reminder data file:', error);
+      // エラー時は空配列を返す（フォールバック処理）
       return [];
     }
   }
