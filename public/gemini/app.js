@@ -9,8 +9,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const statsContainer = document.getElementById('stats-container');
   
   // 設定情報を動的に取得
-  let API;
-  let authHeaders;
+  let API = '/api/gemini'; // Simple relative URL
+  let authHeaders = {};
+  
   try {
     const configRes = await fetch('/config');
     const config = await configRes.json();
@@ -23,28 +24,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       authHeaders = {
         'Authorization': `Basic ${credentials}`
       };
-    } else {
-      authHeaders = {};
-    }
-    
-    // 本番環境（リバースプロキシ）では現在のプロトコルとホストを使用
-    // 開発環境では設定されたポートを使用
-    const currentProtocol = window.location.protocol;
-    const currentHost = window.location.hostname;
-    const isProduction = currentProtocol === 'https:' || window.location.port === '';
-    
-    if (isProduction) {
-      // 本番環境: リバースプロキシ経由
-      API = `${currentProtocol}//${window.location.host}/api/gemini`;
-    } else {
-      // 開発環境: 直接ポート指定
-      const currentPort = config.port;
-      API = `${currentProtocol}//${currentHost}:${currentPort}/api/gemini`;
     }
   } catch (e) {
-    // フォールバック: 現在のホストとポートを使用
-    API = `${window.location.protocol}//${window.location.host}/api/gemini`;
-    authHeaders = {};
+    console.error('Failed to load config:', e);
   }
 
   function setMsg(t, ok=true){
@@ -76,9 +58,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     return date.toLocaleDateString('ja-JP') + ' ' + date.toLocaleTimeString('ja-JP');
   }
 
-  function truncateText(text, maxLength = 100) {
+  function truncateText(text, maxLength = 200) {
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
+  }
+
+  function createExpandableText(text, id, maxLength = 200) {
+    if (text.length <= maxLength) {
+      return text;
+    }
+    
+    const truncated = text.substring(0, maxLength);
+    const remaining = text.substring(maxLength);
+    
+    return `
+      <span id="text-${id}">
+        ${truncated}
+        <span id="remaining-${id}" style="display: none;">${remaining}</span>
+        <button onclick="toggleText('${id}')" style="background: none; border: none; color: #007bff; cursor: pointer; font-size: 0.8rem; margin-left: 0.5rem;" id="toggle-btn-${id}">
+          もっと見る
+        </button>
+      </span>
+    `;
   }
 
   async function loadResults() {
@@ -100,9 +101,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
       }
       
-      resultsContainer.innerHTML = results.map(result => `
+      resultsContainer.innerHTML = results.map((result, index) => `
         <div class="result-item" style="border: 1px solid #e0e0e0; border-radius: 0.5rem; padding: 1rem; margin-bottom: 1rem; background: ${result.status === 'error' ? '#fff5f5' : '#fff'};">
-          <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
             <div style="flex: 1;">
               <div style="font-weight: bold; color: #333; margin-bottom: 0.25rem;">
                 ${result.status === 'success' ? '✅' : '❌'} ${formatDate(result.executedAt)}
@@ -118,21 +119,26 @@ document.addEventListener('DOMContentLoaded', async () => {
           
           <div style="margin-bottom: 0.75rem;">
             <div style="font-weight: bold; color: #444; margin-bottom: 0.25rem;">プロンプト:</div>
-            <div style="background: #f8f9fa; padding: 0.5rem; border-radius: 0.25rem; font-size: 0.9rem; color: #333;">
-              ${truncateText(result.prompt)}
+            <div style="background: #f8f9fa; padding: 0.75rem; border-radius: 0.25rem; font-size: 0.9rem; color: #333; line-height: 1.4; white-space: pre-wrap;">
+              ${createExpandableText(result.prompt, `prompt-${index}`)}
             </div>
           </div>
           
           <div>
-            <div style="font-weight: bold; color: #444; margin-bottom: 0.25rem;">レスポンス:</div>
-            <div style="background: ${result.status === 'error' ? '#fef5e7' : '#f0f8ff'}; padding: 0.5rem; border-radius: 0.25rem; font-size: 0.9rem; color: #333; white-space: pre-wrap;">
-              ${result.status === 'success' ? truncateText(result.response || 'レスポンスなし') : result.errorMessage || 'エラーが発生しました'}
+            <div style="font-weight: bold; color: #444; margin-bottom: 0.25rem;">
+              ${result.status === 'success' ? 'レスポンス:' : 'エラー:'}
+            </div>
+            <div style="background: ${result.status === 'error' ? '#fef5e7' : '#f0f8ff'}; padding: 0.75rem; border-radius: 0.25rem; font-size: 0.9rem; color: #333; line-height: 1.4; white-space: pre-wrap;">
+              ${result.status === 'success' 
+                ? createExpandableText(result.response || 'レスポンスなし', `response-${index}`) 
+                : (result.errorMessage || 'エラーが発生しました')}
             </div>
           </div>
           
           ${result.status === 'success' && result.tokensUsed ? `
-            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #666;">
-              🔢 使用トークン: ${result.tokensUsed} | 📱 モデル: ${result.model || 'N/A'}
+            <div style="margin-top: 0.75rem; padding: 0.5rem; background: #f8f9fa; border-radius: 0.25rem; font-size: 0.85rem; color: #666;">
+              📊 <strong>実行詳細:</strong> 使用トークン: ${result.tokensUsed} | モデル: ${result.model || 'N/A'}
+              ${result.executionTime ? ` | 実行時間: ${result.executionTime}ms` : ''}
             </div>
           ` : ''}
         </div>
@@ -242,6 +248,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // グローバル関数として定義（HTMLから呼び出せるように）
   window.deleteResult = deleteResult;
+  
+  window.toggleText = function(id) {
+    const remainingSpan = document.getElementById(`remaining-${id}`);
+    const toggleBtn = document.getElementById(`toggle-btn-${id}`);
+    
+    if (remainingSpan.style.display === 'none') {
+      remainingSpan.style.display = 'inline';
+      toggleBtn.textContent = '閉じる';
+    } else {
+      remainingSpan.style.display = 'none';
+      toggleBtn.textContent = 'もっと見る';
+    }
+  };
 
   // 初期読み込み
   loadResults();

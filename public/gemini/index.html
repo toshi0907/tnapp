@@ -6,14 +6,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Gemini AI</title>
   <link rel="stylesheet" href="/public/style.css">
-  <script src="app.js" defer></script>
+  <script src="/public/gemini/app.js" defer></script>
 </head>
 
 <body>
   <h1>Gemini AI</h1>
   <div id="msg" class="msg"></div>
 
-  <h2>実行結果</h2>
+  <h2>🤖 実行結果</h2>
   <div class="todo-controls">
     <input type="text" id="search-input" placeholder="検索キーワード...">
     
@@ -29,11 +29,11 @@
       <option value="error">Error</option>
     </select>
     
-    <button id="refresh-btn">更新</button>
+    <button id="refresh-btn">🔄 更新</button>
   </div>
-  <div id="results-container"></div>
+  <div id="results-container" style="min-height: 200px; margin-bottom: 2rem;"></div>
 
-  <h2 id="form-title">プロンプト実行</h2>
+  <h2 id="form-title">✍️ プロンプト実行</h2>
   <form id="gemini-form">
     <div class="form-group">
       <label for="prompt">プロンプト *</label>
@@ -53,12 +53,12 @@
     </div>
     
     <div class="form-group">
-      <button type="submit" id="submit-btn">実行</button>
+      <button type="submit" id="submit-btn">🚀 実行</button>
     </div>
   </form>
 
   <details>
-    <summary>API統計情報</summary>
+    <summary>📊 API統計情報</summary>
     <div id="stats-container">
       <p>読み込み中...</p>
     </div>
