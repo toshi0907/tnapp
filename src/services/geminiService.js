@@ -101,7 +101,7 @@ class GeminiService {
       const result = await geminiStorage.addGeminiResult({
         prompt,
         response: responseText,
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.5-flash',
         status: 'success',
         executionTime,
         tokensUsed,
