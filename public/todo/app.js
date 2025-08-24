@@ -1,40 +1,59 @@
+/**
+ * TODO管理フロントエンドアプリケーション
+ * TODO項目の作成、編集、削除、完了状態管理、フィルタリング機能を提供
+ * APIサーバーとの通信でデータ永続化を行う
+ */
+
+// DOMコンテンツの読み込み完了後に実行される非同期関数
 document.addEventListener('DOMContentLoaded', async () => {
-  const form = document.getElementById('todo-form');
-  const listContainer = document.getElementById('list-container');
-  const msg = document.getElementById('msg');
-  const formTitle = document.getElementById('form-title');
-  const taskInput = document.getElementById('task');
-  const descriptionInput = document.getElementById('description');
-  const prioritySelect = document.getElementById('priority');
-  const categoryInputForm = document.getElementById('category-input');
-  const dueDateInput = document.getElementById('due-date');
-  const tagsInput = document.getElementById('tags');
-  const todoIdInput = document.getElementById('todo-id');
-  const submitBtn = document.getElementById('submit-btn');
-  const cancelBtn = document.getElementById('cancel-btn');
-  const categoryFilter = document.getElementById('category-filter');
-  const sortSelect = document.getElementById('sort-select');
-  const groupByCategory = document.getElementById('group-by-category');
-  const hideCompleted = document.getElementById('hide-completed');
+  // フォーム要素の参照を取得
+  const form = document.getElementById('todo-form');              // TODO作成・編集フォーム
+  const listContainer = document.getElementById('list-container'); // TODO一覧表示コンテナ
+  const msg = document.getElementById('msg');                     // メッセージ表示エリア
+  const formTitle = document.getElementById('form-title');        // フォームタイトル表示
   
-  // 設定情報を動的に取得
-  let API;
-  let authHeaders;
+  // 入力フィールドの参照を取得
+  const taskInput = document.getElementById('task');                    // タスク名入力
+  const descriptionInput = document.getElementById('description');      // 説明文入力
+  const prioritySelect = document.getElementById('priority');           // 優先度選択
+  const categoryInputForm = document.getElementById('category-input');  // カテゴリ入力
+  const dueDateInput = document.getElementById('due-date');             // 期限日入力
+  const tagsInput = document.getElementById('tags');                    // タグ入力
+  const todoIdInput = document.getElementById('todo-id');               // 編集時のTODO ID（隠しフィールド）
+  
+  // ボタン要素の参照を取得
+  const submitBtn = document.getElementById('submit-btn');        // 送信ボタン
+  const cancelBtn = document.getElementById('cancel-btn');        // キャンセルボタン
+  
+  // フィルタリング・ソート要素の参照を取得
+  const categoryFilter = document.getElementById('category-filter');  // カテゴリフィルタ
+  const sortSelect = document.getElementById('sort-select');          // ソート方法選択
+  const groupByCategory = document.getElementById('group-by-category'); // カテゴリ別グループ化チェックボックス
+  const hideCompleted = document.getElementById('hide-completed');    // 完了済み非表示チェックボックス
+  
+  // API設定とBasic認証情報を動的に取得
+  let API;        // APIベースURL
+  let authHeaders; // 認証ヘッダー
+  
   try {
+    // サーバー設定を取得
     const configRes = await fetch('/config');
     const config = await configRes.json();
     
-    // Basic認証の設定
+    // Basic認証が有効な場合の認証ヘッダー設定
     if (config.authEnabled) {
-      // Note: In a real application, these credentials should be obtained through a proper login flow
-      // For demo purposes, using the default credentials from .env
+      // 注意: 実際のアプリケーションでは、認証情報は適切なログインフローで取得すべき
+      // デモ目的で .env のデフォルト認証情報を使用
       const username = 'admin';
       const password = 'your-secure-password';
+      
+      // Base64エンコードでBasic認証文字列を作成
       const credentials = btoa(`${username}:${password}`);
       authHeaders = {
         'Authorization': `Basic ${credentials}`
       };
     } else {
+      // 認証無効の場合は空のヘッダー
       authHeaders = {};
     }
     
