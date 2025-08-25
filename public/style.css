@@ -491,7 +491,12 @@ li { margin: .3rem 0; }
 
 #gemini-form textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 200px;
+}
+
+#schedule-form textarea {
+  resize: vertical;
+  min-height: 150px;
 }
 
 #gemini-form button[type="submit"] {
