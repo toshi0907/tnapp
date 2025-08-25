@@ -154,13 +154,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // フォールバック用のローカルSVG faviconを生成
-  function getLocalFaviconUrl(url) {
+  function getLocalFaviconUrl(url, title) {
     try {
       const urlObj = new URL(url);
       const domain = urlObj.hostname;
       
-      // Create a domain-specific colored favicon using the first letter of the domain
-      const firstLetter = domain.charAt(0).toUpperCase();
+      // Create a title-specific colored favicon using the first letter of the title
+      // Fallback to domain if title is empty
+      const firstLetter = (title && title.trim()) ? title.trim().charAt(0).toUpperCase() : domain.charAt(0).toUpperCase();
       // Generate a color based on the domain name for visual distinction
       const colors = [
         '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
@@ -196,7 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Add error handler to fallback to local SVG favicon if external service fails
     favicon.onerror = function() {
-      this.src = getLocalFaviconUrl(bookmark.url);
+      this.src = getLocalFaviconUrl(bookmark.url, bookmark.title);
       this.onerror = null; // Prevent infinite loop
     };
     
