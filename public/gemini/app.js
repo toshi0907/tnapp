@@ -266,6 +266,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function formatCronExpression(cronExpr) {
+    // 複数のcron式（JSON配列）の場合
+    if (cronExpr.startsWith('[') && cronExpr.endsWith(']')) {
+      try {
+        const cronArray = JSON.parse(cronExpr);
+        const times = cronArray.map(cron => {
+          const parts = cron.split(' ');
+          if (parts.length >= 2) {
+            const hour = parts[1].padStart(2, '0');
+            const minute = parts[0].padStart(2, '0');
+            return `${hour}:${minute}`;
+          }
+          return cron;
+        }).join(', ');
+        return `毎日 ${times}`;
+      } catch (e) {
+        return cronExpr;
+      }
+    }
+    
+    // 単一のcron式の場合（既存のロジック）
     const parts = cronExpr.split(' ');
     if (parts.length !== 5) return cronExpr;
     
@@ -280,6 +300,35 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function getNextRunTime(cronExpr) {
     try {
+      // 複数のcron式（JSON配列）の場合
+      if (cronExpr.startsWith('[') && cronExpr.endsWith(']')) {
+        const cronArray = JSON.parse(cronExpr);
+        const now = new Date();
+        let nextTimes = [];
+        
+        for (const cron of cronArray) {
+          const parts = cron.split(' ');
+          if (parts.length >= 2) {
+            const [minute, hour] = parts;
+            const next = new Date();
+            next.setHours(parseInt(hour), parseInt(minute), 0, 0);
+            
+            if (next <= now) {
+              next.setDate(next.getDate() + 1);
+            }
+            
+            nextTimes.push(next);
+          }
+        }
+        
+        if (nextTimes.length === 0) return null;
+        
+        // 最も近い実行時間を返す
+        const earliest = nextTimes.reduce((min, time) => time < min ? time : min);
+        return earliest.toLocaleDateString('ja-JP') + ' ' + earliest.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      }
+      
+      // 単一のcron式の場合（既存のロジック）
       const parts = cronExpr.split(' ');
       if (parts.length !== 5) return null;
       
@@ -406,20 +455,48 @@ document.addEventListener('DOMContentLoaded', async () => {
   scheduleForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(scheduleForm);
-    const timeValue = document.getElementById('schedule-time').value;
+    const timesValue = document.getElementById('schedule-times').value.trim();
     
-    if (!timeValue) {
+    if (!timesValue) {
       setMsg('実行時間を選択してください', false);
       return;
     }
     
-    const [hour, minute] = timeValue.split(':');
-    const cronExpression = `${minute} ${hour} * * *`; // 毎日指定時間
+    // 複数時間の解析とバリデーション
+    const times = timesValue.split(',').map(t => t.trim()).filter(Boolean);
+    const validTimes = [];
+    
+    for (const timeStr of times) {
+      if (!/^\d{1,2}:\d{2}$/.test(timeStr)) {
+        setMsg(`不正な時間形式です: ${timeStr}。HH:MM形式で入力してください。`, false);
+        return;
+      }
+      
+      const [hour, minute] = timeStr.split(':');
+      const hourNum = parseInt(hour);
+      const minuteNum = parseInt(minute);
+      
+      if (hourNum < 0 || hourNum > 23 || minuteNum < 0 || minuteNum > 59) {
+        setMsg(`不正な時間です: ${timeStr}。00:00-23:59の範囲で入力してください。`, false);
+        return;
+      }
+      
+      validTimes.push({ hour: hourNum.toString(), minute: minuteNum.toString() });
+    }
+    
+    if (validTimes.length === 0) {
+      setMsg('有効な時間が指定されていません', false);
+      return;
+    }
+    
+    // 複数のcron式を生成（JSON配列として保存）
+    const cronExpressions = validTimes.map(time => `${time.minute} ${time.hour} * * *`);
     
     const promptData = {
       name: formData.get('name'),
       prompt: formData.get('prompt'),
-      cronExpression: cronExpression,
+      cronExpression: cronExpressions.length === 1 ? cronExpressions[0] : JSON.stringify(cronExpressions),
+      scheduleTimes: validTimes, // 表示用の時間情報
       category: formData.get('category') || 'scheduled',
       tags: formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()).filter(Boolean) : [],
       enabled: document.getElementById('schedule-enabled').checked
@@ -471,12 +548,36 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('schedule-enabled').checked = prompt.enabled;
       
       // cron式から時間を抽出
-      const cronParts = prompt.cronExpression.split(' ');
-      if (cronParts.length >= 2) {
-        const hour = cronParts[1].padStart(2, '0');
-        const minute = cronParts[0].padStart(2, '0');
-        document.getElementById('schedule-time').value = `${hour}:${minute}`;
+      let timeString = '';
+      
+      // 複数のcron式（JSON配列）の場合
+      if (prompt.cronExpression.startsWith('[') && prompt.cronExpression.endsWith(']')) {
+        try {
+          const cronArray = JSON.parse(prompt.cronExpression);
+          const times = cronArray.map(cron => {
+            const cronParts = cron.split(' ');
+            if (cronParts.length >= 2) {
+              const hour = cronParts[1].padStart(2, '0');
+              const minute = cronParts[0].padStart(2, '0');
+              return `${hour}:${minute}`;
+            }
+            return '';
+          }).filter(Boolean);
+          timeString = times.join(', ');
+        } catch (e) {
+          console.error('Error parsing cron array:', e);
+        }
+      } else {
+        // 単一のcron式の場合
+        const cronParts = prompt.cronExpression.split(' ');
+        if (cronParts.length >= 2) {
+          const hour = cronParts[1].padStart(2, '0');
+          const minute = cronParts[0].padStart(2, '0');
+          timeString = `${hour}:${minute}`;
+        }
       }
+      
+      document.getElementById('schedule-times').value = timeString;
       
       currentEditId = scheduleId;
       document.getElementById('schedule-modal-title').textContent = '📅 スケジュール編集';
