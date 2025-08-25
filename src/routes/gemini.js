@@ -300,6 +300,10 @@ router.get('/scheduled', async (req, res) => {
  *               enabled:
  *                 type: boolean
  *                 description: 有効/無効
+ *               model:
+ *                 type: string
+ *                 description: "使用するGeminiモデル（デフォルト: gemini-1.5-flash）"
+ *                 enum: [gemini-2.0-flash-exp, gemini-1.5-pro, gemini-1.5-flash]
  *     responses:
  *       201:
  *         description: スケジュール済みプロンプト作成成功
@@ -311,7 +315,7 @@ router.get('/scheduled', async (req, res) => {
 // スケジュール済みプロンプト作成
 router.post('/scheduled', async (req, res) => {
   try {
-    const { name, prompt, cronExpression, category, tags, enabled } = req.body;
+    const { name, prompt, cronExpression, category, tags, enabled, model } = req.body;
     
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json({ error: 'Name is required and must be a non-empty string' });
@@ -360,13 +364,18 @@ router.post('/scheduled', async (req, res) => {
       cronExpression,
       category: category || 'scheduled',
       tags: tags || [],
-      enabled: enabled !== false
+      enabled: enabled !== false,
+      model: model || geminiService.getDefaultModel()
     });
     
     res.status(201).json(scheduledPrompt);
   } catch (error) {
     console.error('Error creating scheduled prompt:', error);
-    res.status(500).json({ error: 'Failed to create scheduled prompt' });
+    if (error.message.includes('Invalid model')) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: 'Failed to create scheduled prompt' });
+    }
   }
 });
 
@@ -571,8 +580,8 @@ router.delete('/scheduled/:id', async (req, res) => {
 // Gemini API接続テスト
 router.post('/test', async (req, res) => {
   try {
-    const { prompt } = req.body;
-    const testResult = await geminiService.testGeminiAPI(prompt);
+    const { prompt, model } = req.body;
+    const testResult = await geminiService.testGeminiAPI(prompt, model);
     
     res.json(testResult);
   } catch (error) {
@@ -582,6 +591,60 @@ router.post('/test', async (req, res) => {
       message: 'Test failed with internal error',
       error: error.message
     });
+  }
+});
+
+/**
+ * @swagger
+ * /api/gemini/models:
+ *   get:
+ *     summary: 利用可能なモデル一覧取得
+ *     description: Gemini APIで利用可能なモデルとその詳細情報を取得
+ *     tags: [Gemini]
+ *     responses:
+ *       200:
+ *         description: モデル一覧とデフォルトモデル
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 models:
+ *                   type: object
+ *                   additionalProperties:
+ *                     type: object
+ *                     properties:
+ *                       name:
+ *                         type: string
+ *                         description: モデル表示名
+ *                       description:
+ *                         type: string
+ *                         description: モデルの説明
+ *                       useCase:
+ *                         type: string
+ *                         description: 使用用途
+ *                       features:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ *                         description: 機能・特徴
+ *                 defaultModel:
+ *                   type: string
+ *                   description: デフォルトモデル
+ */
+// 利用可能なモデル一覧取得
+router.get('/models', async (req, res) => {
+  try {
+    const models = geminiService.getAvailableModels();
+    const defaultModel = geminiService.getDefaultModel();
+    
+    res.json({
+      models,
+      defaultModel
+    });
+  } catch (error) {
+    console.error('Error fetching models:', error);
+    res.status(500).json({ error: 'Failed to fetch models' });
   }
 });
 
@@ -604,6 +667,10 @@ router.post('/test', async (req, res) => {
  *               prompt:
  *                 type: string
  *                 description: Geminiに送信するプロンプト
+ *               model:
+ *                 type: string
+ *                 description: "使用するGeminiモデル（デフォルト: gemini-1.5-flash）"
+ *                 enum: [gemini-2.0-flash-exp, gemini-1.5-pro, gemini-1.5-flash]
  *               category:
  *                 type: string
  *                 description: "カテゴリ（デフォルト: general）"
@@ -635,7 +702,7 @@ router.post('/test', async (req, res) => {
 // Gemini API実行
 router.post('/', async (req, res) => {
   try {
-    const { prompt, category, tags } = req.body;
+    const { prompt, category, tags, model } = req.body;
     
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
       return res.status(400).json({ error: 'Prompt is required and must be a non-empty string' });
@@ -644,7 +711,8 @@ router.post('/', async (req, res) => {
     const result = await geminiService.executeCustomPrompt(
       prompt.trim(),
       category || 'general',
-      tags || []
+      tags || [],
+      model
     );
     
     res.status(201).json(result);
@@ -652,6 +720,8 @@ router.post('/', async (req, res) => {
     console.error('Error executing gemini prompt:', error);
     if (error.message.includes('not configured')) {
       res.status(400).json({ error: 'Gemini API key not configured' });
+    } else if (error.message.includes('Invalid model')) {
+      res.status(400).json({ error: error.message });
     } else {
       res.status(500).json({ error: 'Failed to execute gemini prompt' });
     }

@@ -7,19 +7,42 @@ class GeminiService {
   constructor() {
     this.jobs = new Map(); // Store scheduled jobs
     this.apiKey = process.env.GEMINI_API_KEY;
-    this.apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+    this.baseApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
+    this.availableModels = {
+      'gemini-2.0-flash-exp': {
+        name: 'Gemini 2.0 Flash (Experimental)',
+        description: '最新の実験的モデル。最高速度と効率性を提供',
+        useCase: '迅速な回答が必要な一般的なタスク、リアルタイムアプリケーション',
+        features: ['最高速度', '高効率', '最新技術', '実験的機能']
+      },
+      'gemini-1.5-pro': {
+        name: 'Gemini 1.5 Pro',
+        description: '高品質な回答を提供するプロフェッショナルモデル',
+        useCase: '複雑な分析、詳細な説明、専門的な内容の生成',
+        features: ['高品質回答', '複雑なタスク対応', '詳細分析', '専門知識']
+      },
+      'gemini-1.5-flash': {
+        name: 'Gemini 1.5 Flash',
+        description: '速度と品質のバランスが取れた汎用モデル',
+        useCase: '一般的な質問応答、コンテンツ生成、日常的なタスク',
+        features: ['バランス重視', '汎用性', '安定性', 'コストパフォーマンス']
+      }
+    };
+    this.defaultModel = 'gemini-1.5-flash';
     this.defaultPrompts = [
       {
         id: 'daily-insight',
         prompt: 'Provide a brief daily technology insight or trend in 2-3 sentences.',
         category: 'technology',
-        tags: ['daily', 'insight', 'technology']
+        tags: ['daily', 'insight', 'technology'],
+        model: this.defaultModel
       },
       {
         id: 'coding-tip',
         prompt: 'Share a useful programming tip or best practice in 2-3 sentences.',
         category: 'programming',
-        tags: ['daily', 'coding', 'tips']
+        tags: ['daily', 'coding', 'tips'],
+        model: this.defaultModel
       }
     ];
   }
@@ -57,7 +80,8 @@ class GeminiService {
           promptConfig.prompt,
           promptConfig.category,
           promptConfig.tags,
-          'scheduled'
+          'scheduled',
+          promptConfig.model
         );
       } catch (error) {
         console.error(`❌ Error executing prompt "${promptConfig.id}":`, error.message);
@@ -65,11 +89,20 @@ class GeminiService {
     }
   }
 
-  async callGeminiAPI(prompt, category = 'general', tags = [], scheduledBy = 'manual') {
+  async callGeminiAPI(prompt, category = 'general', tags = [], scheduledBy = 'manual', model = null) {
     if (!this.apiKey) {
       throw new Error('GEMINI_API_KEY not configured');
     }
 
+    // Use provided model or default
+    const selectedModel = model || this.defaultModel;
+    
+    // Validate model
+    if (!this.availableModels[selectedModel]) {
+      throw new Error(`Invalid model: ${selectedModel}. Available models: ${Object.keys(this.availableModels).join(', ')}`);
+    }
+
+    const apiUrl = `${this.baseApiUrl}/${selectedModel}:generateContent`;
     const startTime = Date.now();
     
     try {
@@ -85,7 +118,7 @@ class GeminiService {
         ]
       };
 
-      const response = await axios.post(this.apiUrl, requestBody, {
+      const response = await axios.post(apiUrl, requestBody, {
         headers: {
           'Content-Type': 'application/json',
           'X-goog-api-key': this.apiKey
@@ -101,7 +134,7 @@ class GeminiService {
       const result = await geminiStorage.addGeminiResult({
         prompt,
         response: responseText,
-        model: 'gemini-2.5-flash',
+        model: selectedModel,
         status: 'success',
         executionTime,
         tokensUsed,
@@ -110,7 +143,7 @@ class GeminiService {
         scheduledBy
       });
 
-      console.log(`✅ Gemini API call successful (${executionTime}ms, ${tokensUsed || 'unknown'} tokens)`);
+      console.log(`✅ Gemini API call successful (model: ${selectedModel}, ${executionTime}ms, ${tokensUsed || 'unknown'} tokens)`);
       return result;
 
     } catch (error) {
@@ -120,7 +153,7 @@ class GeminiService {
       const errorResult = await geminiStorage.addGeminiResult({
         prompt,
         response: null,
-        model: 'gemini-2.0-flash',
+        model: selectedModel,
         status: 'error',
         errorMessage: error.message,
         executionTime,
@@ -129,18 +162,19 @@ class GeminiService {
         scheduledBy
       });
 
-      console.error(`❌ Gemini API error (${executionTime}ms):`, error.message);
+      console.error(`❌ Gemini API error (model: ${selectedModel}, ${executionTime}ms):`, error.message);
       throw error;
     }
   }
 
-  async testGeminiAPI(prompt = 'Hello, can you respond with a simple greeting?') {
+  async testGeminiAPI(prompt = 'Hello, can you respond with a simple greeting?', model = null) {
     try {
       const result = await this.callGeminiAPI(
         prompt,
         'test',
         ['test', 'api'],
-        'test'
+        'test',
+        model
       );
       return {
         success: true,
@@ -160,6 +194,16 @@ class GeminiService {
     return this.jobs.size;
   }
 
+  // Get available models with their descriptions
+  getAvailableModels() {
+    return this.availableModels;
+  }
+
+  // Get default model
+  getDefaultModel() {
+    return this.defaultModel;
+  }
+
   cancelAllJobs() {
     for (const [name, job] of this.jobs.entries()) {
       job.cancel();
@@ -169,19 +213,19 @@ class GeminiService {
   }
 
   // Add a manual prompt to be executed immediately
-  async executeCustomPrompt(prompt, category = 'custom', tags = []) {
-    return await this.callGeminiAPI(prompt, category, tags, 'manual');
+  async executeCustomPrompt(prompt, category = 'custom', tags = [], model = null) {
+    return await this.callGeminiAPI(prompt, category, tags, 'manual', model);
   }
 
   // Schedule a custom cron job
-  scheduleCustomJob(name, cronExpression, prompt, category = 'scheduled', tags = []) {
+  scheduleCustomJob(name, cronExpression, prompt, category = 'scheduled', tags = [], model = null) {
     if (this.jobs.has(name)) {
       this.jobs.get(name).cancel();
     }
 
     const job = schedule.scheduleJob(cronExpression, async () => {
       try {
-        await this.callGeminiAPI(prompt, category, tags, 'custom-schedule');
+        await this.callGeminiAPI(prompt, category, tags, 'custom-schedule', model);
         console.log(`✅ Custom Gemini job "${name}" executed successfully`);
       } catch (error) {
         console.error(`❌ Custom Gemini job "${name}" failed:`, error.message);
@@ -273,7 +317,8 @@ class GeminiService {
                 promptConfig.prompt,
                 promptConfig.category,
                 promptConfig.tags,
-                'scheduled'
+                'scheduled',
+                promptConfig.model
               );
               console.log(`✅ Scheduled prompt "${promptConfig.name}" (job ${i + 1}/${cronExpressions.length}) executed successfully`);
             } catch (error) {

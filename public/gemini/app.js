@@ -34,6 +34,107 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Failed to load config:', e);
   }
 
+  let availableModels = {};
+  let defaultModel = 'gemini-1.5-flash';
+
+  // Load available models
+  async function loadModels() {
+    try {
+      const res = await fetch(`${API}/models`, {
+        headers: authHeaders
+      });
+      if (!res.ok) {
+        throw new Error('Failed to load models');
+      }
+      const data = await res.json();
+      availableModels = data.models;
+      defaultModel = data.defaultModel;
+      
+      // Populate model dropdowns
+      populateModelDropdowns();
+    } catch (e) {
+      console.error('Failed to load models:', e);
+      setMsg('モデル情報の読み込みに失敗しました', false);
+    }
+  }
+
+  // Populate model dropdowns
+  function populateModelDropdowns() {
+    const modelSelect = document.getElementById('model');
+    const scheduleModelSelect = document.getElementById('schedule-model');
+    
+    // Clear existing options
+    modelSelect.innerHTML = '';
+    scheduleModelSelect.innerHTML = '';
+    
+    // Add model options
+    Object.entries(availableModels).forEach(([modelId, modelInfo]) => {
+      const option = document.createElement('option');
+      option.value = modelId;
+      option.textContent = modelInfo.name;
+      if (modelId === defaultModel) {
+        option.selected = true;
+      }
+      modelSelect.appendChild(option);
+      
+      const scheduleOption = option.cloneNode(true);
+      scheduleModelSelect.appendChild(scheduleOption);
+    });
+    
+    // Show initial model info
+    updateModelInfo();
+    updateScheduleModelInfo();
+  }
+
+  // Update model information display
+  function updateModelInfo() {
+    const modelSelect = document.getElementById('model');
+    const modelInfo = document.getElementById('model-info');
+    const selectedModel = modelSelect.value;
+    
+    if (selectedModel && availableModels[selectedModel]) {
+      const model = availableModels[selectedModel];
+      modelInfo.innerHTML = `
+        <strong>${model.name}</strong><br>
+        <em>${model.description}</em><br>
+        <strong>用途:</strong> ${model.useCase}<br>
+        <strong>特徴:</strong> ${model.features.join(', ')}
+      `;
+      modelInfo.style.display = 'block';
+    } else {
+      modelInfo.style.display = 'none';
+    }
+  }
+
+  // Update scheduled model information display
+  function updateScheduleModelInfo() {
+    const modelSelect = document.getElementById('schedule-model');
+    const modelInfo = document.getElementById('schedule-model-info');
+    const selectedModel = modelSelect.value;
+    
+    if (selectedModel && availableModels[selectedModel]) {
+      const model = availableModels[selectedModel];
+      modelInfo.innerHTML = `
+        <strong>${model.name}</strong><br>
+        <em>${model.description}</em><br>
+        <strong>用途:</strong> ${model.useCase}<br>
+        <strong>特徴:</strong> ${model.features.join(', ')}
+      `;
+      modelInfo.style.display = 'block';
+    } else {
+      modelInfo.style.display = 'none';
+    }
+  }
+
+  // Add event listeners for model selection changes
+  document.addEventListener('change', (e) => {
+    if (e.target.id === 'model') {
+      updateModelInfo();
+    } else if (e.target.id === 'schedule-model') {
+      updateScheduleModelInfo();
+    }
+  });
+
   function setMsg(t, ok=true){
     msg.textContent = t;
     msg.style.color = ok ? '#0a0' : '#c00';
@@ -120,6 +221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ${result.category ? `📂 ${result.category}` : ''}
                 ${result.tags && result.tags.length > 0 ? ` | 🏷️ ${result.tags.join(', ')}` : ''}
                 ${result.scheduledJob ? ' | ⏰ 自動実行' : ' | 👤 手動実行'}
+                ${result.model ? ` | 🤖 ${availableModels[result.model]?.name || result.model}` : ''}
               </div>
             </div>
             <button class="delete-btn" data-result-id="${result.id}" style="background: #dc3545; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.8rem;">削除</button>
@@ -238,6 +340,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                   ⏰ ${formatCronExpression(prompt.cronExpression)}
                   ${nextRunTime ? ` | 次回実行: ${nextRunTime}` : ''}
                   ${prompt.category ? ` | 📂 ${prompt.category}` : ''}
+                  ${prompt.model ? ` | 🤖 ${availableModels[prompt.model]?.name || prompt.model}` : ''}
                 </div>
               </div>
               <div>
@@ -401,6 +504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const formData = new FormData(form);
     const data = {
       prompt: formData.get('prompt'),
+      model: formData.get('model') || defaultModel,
       category: formData.get('category') || undefined,
       tags: formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()).filter(Boolean) : undefined
     };
@@ -497,6 +601,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       prompt: formData.get('prompt'),
       cronExpression: cronExpressions.length === 1 ? cronExpressions[0] : JSON.stringify(cronExpressions),
       scheduleTimes: validTimes, // 表示用の時間情報
+      model: formData.get('model') || defaultModel,
       category: formData.get('category') || 'scheduled',
       tags: formData.get('tags') ? formData.get('tags').split(',').map(tag => tag.trim()).filter(Boolean) : [],
       enabled: document.getElementById('schedule-enabled').checked
@@ -610,4 +715,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadCategories();
   loadStats();
   loadScheduledPrompts();
+  loadModels();
 });
