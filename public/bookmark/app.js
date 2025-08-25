@@ -140,11 +140,66 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  // URLからfavicon URLを生成（Hatenaのfaviconサービスを使用、フォールバックあり）
+  function getFaviconUrl(url) {
+    try {
+      // Validate URL format
+      new URL(url);
+      // Use Hatena favicon service
+      return `https://cdn-ak.favicon.st-hatena.com/?url=${encodeURIComponent(url)}`;
+    } catch (e) {
+      // Invalid URL, return a default icon
+      return 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="%23666"><rect width="16" height="16" fill="%23ccc" rx="2"/><path d="M8 2l2 3h3l-2.5 3.5L13 12H3l2.5-3.5L3 5h3z" fill="%23666"/></svg>';
+    }
+  }
+
+  // フォールバック用のローカルSVG faviconを生成
+  function getLocalFaviconUrl(url, title) {
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      
+      // Create a title-specific colored favicon using the first letter of the title
+      // Fallback to domain if title is empty
+      const firstLetter = (title && title.trim()) ? title.trim().charAt(0).toUpperCase() : domain.charAt(0).toUpperCase();
+      // Generate a color based on the domain name for visual distinction
+      const colors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+      ];
+      const colorIndex = domain.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
+      const backgroundColor = colors[colorIndex];
+      
+      // Create an SVG favicon with the first letter and domain-specific color
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+        <rect width="16" height="16" fill="${backgroundColor}" rx="2"/>
+        <text x="8" y="11" font-family="Arial, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" fill="white">${firstLetter}</text>
+      </svg>`;
+      
+      return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+    } catch (e) {
+      // Invalid URL, return a default icon
+      return 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="%23666"><rect width="16" height="16" fill="%23ccc" rx="2"/><path d="M8 2l2 3h3l-2.5 3.5L13 12H3l2.5-3.5L3 5h3z" fill="%23666"/></svg>';
+    }
+  }
+
   // ブックマークアイテムのHTMLを生成
   function createBookmarkElement(bookmark) {
     const div = document.createElement('div');
     div.className = 'bookmark-item';
     div.setAttribute('data-bookmark-id', bookmark.id);
+    
+    // Favicon element
+    const favicon = document.createElement('img');
+    favicon.className = 'bookmark-favicon';
+    favicon.src = getFaviconUrl(bookmark.url);
+    favicon.alt = 'Site icon';
+    
+    // Add error handler to fallback to local SVG favicon if external service fails
+    favicon.onerror = function() {
+      this.src = getLocalFaviconUrl(bookmark.url, bookmark.title);
+      this.onerror = null; // Prevent infinite loop
+    };
     
     const contentDiv = document.createElement('div');
     contentDiv.className = 'bookmark-content';
@@ -205,6 +260,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Show/hide actions based on edit-enable checkbox
     actionsDiv.style.display = editEnable.checked ? 'flex' : 'none';
     
+    div.appendChild(favicon);
     div.appendChild(contentDiv);
     div.appendChild(actionsDiv);
     

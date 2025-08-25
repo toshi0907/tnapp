@@ -32,7 +32,14 @@ function createApp() {
   });
 
   // セキュリティとCORS設定
-  app.use(helmet());  // セキュリティヘッダーを自動設定（XSS, CSP等）
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "img-src": ["'self'", "data:", "https://www.google.com", "https://cdn-ak.favicon.st-hatena.com"]
+      }
+    }
+  }));  // セキュリティヘッダーを自動設定（XSS, CSP等）、favicon用のimg-src許可を含む
   app.use(cors());  // 全オリジンからのアクセスを許可
   
   // リクエストボディの解析設定

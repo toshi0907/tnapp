@@ -319,6 +319,15 @@ li { margin: .3rem 0; }
   flex: 1;
 }
 
+.bookmark-favicon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
 .todo-title { font-weight: bold; }
 .todo-meta { 
   font-size: .8rem; 
