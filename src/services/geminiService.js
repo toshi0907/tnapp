@@ -234,31 +234,70 @@ class GeminiService {
   }
 
   async schedulePrompt(promptConfig) {
-    const jobName = `scheduled-${promptConfig.id}`;
+    const baseJobName = `scheduled-${promptConfig.id}`;
     
     try {
-      // 既存のジョブがあればキャンセル
-      if (this.jobs.has(jobName)) {
-        this.jobs.get(jobName).cancel();
+      // 既存のジョブがあればキャンセル（複数のジョブがある可能性を考慮）
+      for (const [name, job] of this.jobs.entries()) {
+        if (name.startsWith(baseJobName)) {
+          job.cancel();
+          this.jobs.delete(name);
+        }
       }
 
-      const job = schedule.scheduleJob(promptConfig.cronExpression, async () => {
+      let cronExpressions = [];
+      
+      // 複数のcron式（JSON配列）の場合
+      if (promptConfig.cronExpression.startsWith('[') && promptConfig.cronExpression.endsWith(']')) {
         try {
-          await this.callGeminiAPI(
-            promptConfig.prompt,
-            promptConfig.category,
-            promptConfig.tags,
-            'scheduled'
-          );
-          console.log(`✅ Scheduled prompt "${promptConfig.name}" executed successfully`);
-        } catch (error) {
-          console.error(`❌ Scheduled prompt "${promptConfig.name}" failed:`, error.message);
+          cronExpressions = JSON.parse(promptConfig.cronExpression);
+        } catch (e) {
+          console.error('Error parsing cron array:', e);
+          return false;
         }
-      });
+      } else {
+        // 単一のcron式の場合
+        cronExpressions = [promptConfig.cronExpression];
+      }
 
-      this.jobs.set(jobName, job);
-      console.log(`📅 Scheduled prompt "${promptConfig.name}" with cron: ${promptConfig.cronExpression}`);
-      return true;
+      // 各cron式に対してジョブを作成
+      let successCount = 0;
+      for (let i = 0; i < cronExpressions.length; i++) {
+        const cronExpr = cronExpressions[i];
+        const jobName = cronExpressions.length > 1 ? `${baseJobName}-${i}` : baseJobName;
+        
+        try {
+          const job = schedule.scheduleJob(cronExpr, async () => {
+            try {
+              await this.callGeminiAPI(
+                promptConfig.prompt,
+                promptConfig.category,
+                promptConfig.tags,
+                'scheduled'
+              );
+              console.log(`✅ Scheduled prompt "${promptConfig.name}" (job ${i + 1}/${cronExpressions.length}) executed successfully`);
+            } catch (error) {
+              console.error(`❌ Scheduled prompt "${promptConfig.name}" (job ${i + 1}/${cronExpressions.length}) failed:`, error.message);
+            }
+          });
+
+          this.jobs.set(jobName, job);
+          successCount++;
+        } catch (error) {
+          console.error(`❌ Error scheduling job ${i + 1} for prompt "${promptConfig.name}":`, error.message);
+        }
+      }
+
+      if (successCount > 0) {
+        const scheduleInfo = cronExpressions.length > 1 
+          ? `${cronExpressions.length} jobs (${cronExpressions.join(', ')})`
+          : cronExpressions[0];
+        console.log(`📅 Scheduled prompt "${promptConfig.name}" with ${scheduleInfo}`);
+        return true;
+      } else {
+        console.error(`❌ Failed to schedule any jobs for prompt "${promptConfig.name}"`);
+        return false;
+      }
     } catch (error) {
       console.error(`❌ Error scheduling prompt "${promptConfig.name}":`, error.message);
       return false;
@@ -279,11 +318,13 @@ class GeminiService {
     const updatedPrompt = await geminiStorage.updateScheduledPrompt(id, updateData);
     
     if (updatedPrompt) {
-      // 既存のジョブをキャンセル
-      const jobName = `scheduled-${id}`;
-      if (this.jobs.has(jobName)) {
-        this.jobs.get(jobName).cancel();
-        this.jobs.delete(jobName);
+      // 既存のジョブをキャンセル（複数のジョブがある可能性を考慮）
+      const baseJobName = `scheduled-${id}`;
+      for (const [name, job] of this.jobs.entries()) {
+        if (name.startsWith(baseJobName)) {
+          job.cancel();
+          this.jobs.delete(name);
+        }
       }
       
       // 有効な場合は再スケジュール
@@ -296,12 +337,19 @@ class GeminiService {
   }
 
   async deleteScheduledPrompt(id) {
-    // スケジュールジョブをキャンセル
-    const jobName = `scheduled-${id}`;
-    if (this.jobs.has(jobName)) {
-      this.jobs.get(jobName).cancel();
-      this.jobs.delete(jobName);
-      console.log(`🚫 Cancelled scheduled job: ${jobName}`);
+    // スケジュールジョブをキャンセル（複数のジョブがある可能性を考慮）
+    const baseJobName = `scheduled-${id}`;
+    let cancelledCount = 0;
+    for (const [name, job] of this.jobs.entries()) {
+      if (name.startsWith(baseJobName)) {
+        job.cancel();
+        this.jobs.delete(name);
+        cancelledCount++;
+      }
+    }
+    
+    if (cancelledCount > 0) {
+      console.log(`🚫 Cancelled ${cancelledCount} scheduled job(s) for prompt ${id}`);
     }
     
     return await geminiStorage.deleteScheduledPrompt(id);

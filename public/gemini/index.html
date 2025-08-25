@@ -80,8 +80,9 @@
         
         <div class="form-row">
           <div class="form-group">
-            <label for="schedule-time">実行時間 *</label>
-            <input type="time" id="schedule-time" required>
+            <label for="schedule-times">実行時間 * <small>（複数指定時はカンマ区切り。例: 09:00, 15:30, 21:00）</small></label>
+            <input type="text" id="schedule-times" required placeholder="09:00, 15:30, 21:00" pattern="^(\d{1,2}:\d{2})(\s*,\s*\d{1,2}:\d{2})*$">
+            <small style="color: #666; font-size: 0.8rem;">単一時間: 09:00 | 複数時間: 09:00, 15:30, 21:00</small>
           </div>
           <div class="form-group">
             <label for="schedule-category">カテゴリ</label>

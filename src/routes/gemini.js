@@ -325,10 +325,33 @@ router.post('/scheduled', async (req, res) => {
       return res.status(400).json({ error: 'Cron expression is required' });
     }
     
-    // cron式の簡単な検証
-    const cronParts = cronExpression.split(' ');
-    if (cronParts.length !== 5) {
-      return res.status(400).json({ error: 'Invalid cron expression format. Expected 5 parts (minute hour day month dayOfWeek)' });
+    // cron式の簡単な検証（単一または複数）
+    let cronExpressions = [];
+    
+    // JSON配列の場合
+    if (cronExpression.startsWith('[') && cronExpression.endsWith(']')) {
+      try {
+        cronExpressions = JSON.parse(cronExpression);
+        if (!Array.isArray(cronExpressions) || cronExpressions.length === 0) {
+          return res.status(400).json({ error: 'Cron expression array must be non-empty' });
+        }
+      } catch (e) {
+        return res.status(400).json({ error: 'Invalid JSON format for cron expression array' });
+      }
+    } else {
+      // 単一のcron式の場合
+      cronExpressions = [cronExpression];
+    }
+    
+    // 各cron式を検証
+    for (const cron of cronExpressions) {
+      if (typeof cron !== 'string') {
+        return res.status(400).json({ error: 'Each cron expression must be a string' });
+      }
+      const cronParts = cron.split(' ');
+      if (cronParts.length !== 5) {
+        return res.status(400).json({ error: `Invalid cron expression format: "${cron}". Expected 5 parts (minute hour day month dayOfWeek)` });
+      }
     }
     
     const scheduledPrompt = await geminiService.createScheduledPrompt({
@@ -436,9 +459,32 @@ router.put('/scheduled/:id', async (req, res) => {
     
     // cron式の検証（提供された場合）
     if (updateData.cronExpression && typeof updateData.cronExpression === 'string') {
-      const cronParts = updateData.cronExpression.split(' ');
-      if (cronParts.length !== 5) {
-        return res.status(400).json({ error: 'Invalid cron expression format. Expected 5 parts (minute hour day month dayOfWeek)' });
+      let cronExpressions = [];
+      
+      // JSON配列の場合
+      if (updateData.cronExpression.startsWith('[') && updateData.cronExpression.endsWith(']')) {
+        try {
+          cronExpressions = JSON.parse(updateData.cronExpression);
+          if (!Array.isArray(cronExpressions) || cronExpressions.length === 0) {
+            return res.status(400).json({ error: 'Cron expression array must be non-empty' });
+          }
+        } catch (e) {
+          return res.status(400).json({ error: 'Invalid JSON format for cron expression array' });
+        }
+      } else {
+        // 単一のcron式の場合
+        cronExpressions = [updateData.cronExpression];
+      }
+      
+      // 各cron式を検証
+      for (const cron of cronExpressions) {
+        if (typeof cron !== 'string') {
+          return res.status(400).json({ error: 'Each cron expression must be a string' });
+        }
+        const cronParts = cron.split(' ');
+        if (cronParts.length !== 5) {
+          return res.status(400).json({ error: `Invalid cron expression format: "${cron}". Expected 5 parts (minute hour day month dayOfWeek)` });
+        }
       }
     }
     
