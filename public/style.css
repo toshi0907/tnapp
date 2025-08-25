@@ -553,3 +553,109 @@ details summary {
   font-weight: bold;
   color: #673ab7;
 }
+
+/* レスポンシブデザイン: スマートフォン向け最適化 */
+@media (max-width: 768px) {
+  body {
+    margin: 0.25rem; /* スマートフォンではマージンを最小限に */
+    padding: 0;
+  }
+  
+  /* 全ての要素の幅を最大限活用 */
+  h1, h2, form, .form-group, .form-row {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .form-row {
+    flex-direction: column; /* スマートフォンでは縦並びに */
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .form-row .form-group {
+    min-width: unset; /* 最小幅制限を解除 */
+    width: 100%;
+    margin: 0;
+  }
+  
+  /* Gemini入力フォーム全体のスマートフォン最適化 */
+  #gemini-form, #schedule-form {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* 全ての入力要素を画面幅いっぱいに */
+  #gemini-form input, #gemini-form select, #gemini-form textarea,
+  #schedule-form input, #schedule-form select, #schedule-form textarea,
+  input, select, textarea {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 0.5rem;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* フォームグループの余白を削減 */
+  .form-group {
+    margin-bottom: 0.75rem;
+    padding: 0;
+  }
+  
+  .form-group label {
+    margin-bottom: 0.2rem;
+  }
+  
+  /* スケジュールモーダルのスマートフォン対応 */
+  #schedule-modal > div {
+    width: 98%; /* スマートフォンでは98%幅に */
+    max-width: none; /* 最大幅制限を解除 */
+    margin: 0.5rem auto;
+    padding: 0.75rem; /* パディングを削減 */
+    box-sizing: border-box;
+    max-height: 90vh; /* 画面高さの90%まで */
+    overflow-y: auto; /* 縦スクロール対応 */
+  }
+  
+  /* ボタンのスマートフォン最適化 */
+  .todo-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .todo-controls > * {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+  }
+  
+  /* 検索入力のスマートフォン最適化 */
+  #search-input {
+    min-width: unset;
+    width: 100%;
+    margin: 0;
+  }
+  
+  /* ボタンの幅も最大限活用 */
+  button {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0.25rem 0;
+  }
+  
+  /* 結果表示エリアの最適化 */
+  #results-container, #scheduled-prompts-container {
+    margin-left: 0;
+    margin-right: 0;
+    padding: 0;
+  }
+}
