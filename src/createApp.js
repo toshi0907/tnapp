@@ -11,7 +11,7 @@ const { specs, swaggerUi, swaggerUiOptions, createSwaggerSetup } = require('./co
 const bookmarkRouter = require('./routes/bookmarks');  // ブックマーク API ルーター
 const todoRouter = require('./routes/todos');  // TODO API ルーター
 const reminderRouter = require('./routes/reminders');  // リマインダー API ルーター
-const geminiRouter = require('./routes/gemini');  // Gemini AI API ルーター
+
 const path = require('path');  // パス操作ユーティリティ
 require('dotenv').config();  // 環境変数の読み込み
 
@@ -50,7 +50,6 @@ function createApp() {
   const bookmarkStorage = require('./database/bookmarkStorage');
   const todoStorage = require('./database/todoStorage');
   const reminderStorage = require('./database/reminderStorage');
-  const geminiStorage = require('./database/geminiStorage');
   
   app.get('/health', async (req, res) => {
     try {
@@ -62,9 +61,6 @@ function createApp() {
       const reminderCount = await reminderStorage.getReminderCount();  // リマインダー総数
       const pendingReminders = await reminderStorage.getPendingCount();  // 未送信リマインダー数
       const sentReminders = await reminderStorage.getSentCount();  // 送信済みリマインダー数
-      const geminiCount = await geminiStorage.getGeminiResultCount();  // Gemini実行結果総数
-      const geminiSuccessful = await geminiStorage.getSuccessCount();  // Gemini成功実行数
-      const geminiFailed = await geminiStorage.getFailedCount();  // Gemini失敗実行数
       
       // 正常な統計情報を含むレスポンスを返す
       res.status(200).json({
@@ -73,7 +69,6 @@ function createApp() {
         database: 'JSON File Storage',
         bookmarkCount, todoCount, completedTodos, pendingTodos,
         reminderCount, pendingReminders, sentReminders,
-        geminiCount, geminiSuccessful, geminiFailed,
         timestamp: new Date().toISOString()
       });
     } catch {
@@ -122,17 +117,12 @@ function createApp() {
   app.get('/reminder', (req, res) => {
     res.sendFile(path.join(publicDir, 'reminder', 'index.html'));
   });
-  
-  // Gemini AI管理ページ
-  app.get('/gemini', (req, res) => {
-    res.sendFile(path.join(publicDir, 'gemini', 'index.html'));
-  });
+
 
   // API ルーターの設定 - 各機能のRESTful APIエンドポイントを設定
   app.use('/api/bookmarks', bookmarkRouter);  // ブックマーク関連API
   app.use('/api/todos', todoRouter);  // TODO関連API
   app.use('/api/reminders', reminderRouter);  // リマインダー関連API
-  app.use('/api/gemini', geminiRouter);  // Gemini AI関連API
 
   // 404エラーハンドラー - 存在しないルートへのアクセス時
   app.use('*', (req, res) => {
