@@ -11,6 +11,7 @@ const { specs, swaggerUi, swaggerUiOptions, createSwaggerSetup } = require('./co
 const bookmarkRouter = require('./routes/bookmarks');  // ブックマーク API ルーター
 const todoRouter = require('./routes/todos');  // TODO API ルーター
 const reminderRouter = require('./routes/reminders');  // リマインダー API ルーター
+const weatherRouter = require('./routes/weather');  // 天気予報 API ルーター
 
 const path = require('path');  // パス操作ユーティリティ
 require('dotenv').config();  // 環境変数の読み込み
@@ -50,6 +51,8 @@ function createApp() {
   const bookmarkStorage = require('./database/bookmarkStorage');
   const todoStorage = require('./database/todoStorage');
   const reminderStorage = require('./database/reminderStorage');
+  const locationStorage = require('./database/locationStorage');
+  const weatherStorage = require('./database/weatherStorage');
   
   app.get('/health', async (req, res) => {
     try {
@@ -61,6 +64,9 @@ function createApp() {
       const reminderCount = await reminderStorage.getReminderCount();  // リマインダー総数
       const pendingReminders = await reminderStorage.getPendingCount();  // 未送信リマインダー数
       const sentReminders = await reminderStorage.getSentCount();  // 送信済みリマインダー数
+      const locationCount = await locationStorage.getLocationCount();  // 位置情報総数
+      const activeLocationCount = await locationStorage.getActiveLocationCount();  // アクティブ位置情報数
+      const weatherStats = await weatherStorage.getStatistics();  // 天気データ統計
       
       // 正常な統計情報を含むレスポンスを返す
       res.status(200).json({
@@ -69,6 +75,10 @@ function createApp() {
         database: 'JSON File Storage',
         bookmarkCount, todoCount, completedTodos, pendingTodos,
         reminderCount, pendingReminders, sentReminders,
+        locationCount, activeLocationCount,
+        weatherRecords: weatherStats.totalRecords,
+        successfulWeatherRecords: weatherStats.successfulRecords,
+        failedWeatherRecords: weatherStats.failedRecords,
         timestamp: new Date().toISOString()
       });
     } catch {
@@ -123,6 +133,7 @@ function createApp() {
   app.use('/api/bookmarks', bookmarkRouter);  // ブックマーク関連API
   app.use('/api/todos', todoRouter);  // TODO関連API
   app.use('/api/reminders', reminderRouter);  // リマインダー関連API
+  app.use('/api/weather', weatherRouter);  // 天気予報関連API
 
   // 404エラーハンドラー - 存在しないルートへのアクセス時
   app.use('*', (req, res) => {
