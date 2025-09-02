@@ -7,6 +7,7 @@
 const { createApp } = require('./createApp');  // Express アプリケーション作成ファクトリー
 const { initializeData } = require('./initData');  // サンプルデータ初期化機能
 const notificationService = require('./services/notificationService');  // 通知サービス（リマインダー機能）
+const weatherService = require('./services/weatherService');  // 天気データ取得サービス
 require('dotenv').config();  // 環境変数の読み込み
 
 // サーバーのポート番号を環境変数から取得（デフォルト: 3000）
@@ -27,6 +28,10 @@ async function startServer() {
     // リマインダー通知のスケジュールを初期化
     // 既存のリマインダーデータから通知タイマーを復元
     await notificationService.initializeSchedules();
+    
+    // 天気データ取得サービスを初期化
+    // 既存の位置情報に対して定期的な天気データ取得を開始
+    await weatherService.initialize();
     
     // 指定ポートでHTTPサーバーを開始
     app.listen(PORT, () => {
