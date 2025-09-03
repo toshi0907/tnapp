@@ -845,4 +845,26 @@ details summary {
   .location-controls {
     flex-direction: column;
   }
+  
+  /* Ensure forecast data is visible on mobile */
+  .forecast-day {
+    padding: 1rem;
+    margin-bottom: .8rem;
+    min-height: auto;
+  }
+  
+  .forecast-day p {
+    font-size: .9rem;
+    margin: .4rem 0;
+    line-height: 1.4;
+  }
+  
+  .current-weather p {
+    font-size: .9rem;
+    margin: .4rem 0;
+  }
+  
+  .weather-content {
+    padding: 1rem;
+  }
 }

@@ -481,7 +481,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               <p><strong>${typeLabel}${formattedDate ? ` (${formattedDate})` : ''}:</strong></p>
               ${temperature.Min?.Celsius ? `<p>最低気温: ${temperature.Min.Celsius}°C</p>` : ''}
               ${temperature.Max?.Celsius ? `<p>最高気温: ${temperature.Max.Celsius}°C</p>` : ''}
-              ${rainfall !== '不明' ? `<p>降水量: ${rainfall}</p>` : ''}
+              <p>降水量: ${rainfall || '0mm'}</p>
             </div>
           `;
         });
