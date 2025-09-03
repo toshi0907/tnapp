@@ -459,7 +459,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         weatherData.slice(0, 7).forEach(weather => {
           const date = weather.Date || '';
           const type = weather.Type || '';
-          const rainfall = weather.Rainfall || '不明';
+          const rainfall = weather.Rainfall !== undefined && weather.Rainfall !== null && weather.Rainfall !== '' 
+            ? `${weather.Rainfall}mm` 
+            : '0mm';
           const temperature = weather.Temperature || {};
           
           // 日付フォーマット (YYYYMMDD → YYYY/MM/DD)
@@ -481,7 +483,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               <p><strong>${typeLabel}${formattedDate ? ` (${formattedDate})` : ''}:</strong></p>
               ${temperature.Min?.Celsius ? `<p>最低気温: ${temperature.Min.Celsius}°C</p>` : ''}
               ${temperature.Max?.Celsius ? `<p>最高気温: ${temperature.Max.Celsius}°C</p>` : ''}
-              <p>降水量: ${rainfall || '0mm'}</p>
+              <p>降水量: ${rainfall}</p>
             </div>
           `;
         });
