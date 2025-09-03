@@ -426,12 +426,97 @@ document.addEventListener('DOMContentLoaded', async () => {
    * @returns {string} HTML文字列
    */
   function formatYahooWeatherData(data) {
-    return `
-      <div class="current-weather">
-        <h4>Yahoo Weather データ</h4>
-        <pre>${JSON.stringify(data, null, 2)}</pre>
-      </div>
-    `;
+    try {
+      // Yahoo Weather API の基本的な構造を確認
+      if (!data || !data.Feature || !Array.isArray(data.Feature) || data.Feature.length === 0) {
+        return `
+          <div class="current-weather">
+            <h4>Yahoo Weather データ</h4>
+            <p>有効な天気データが取得できませんでした</p>
+          </div>
+        `;
+      }
+
+      const feature = data.Feature[0];
+      const property = feature.Property || {};
+      const weatherList = property.WeatherList || {};
+      const weatherData = weatherList.Weather || [];
+
+      // 位置情報
+      const locationName = feature.Name || '不明な地点';
+      const coordinates = feature.Geometry?.Coordinates || '';
+
+      let weatherContent = `
+        <div class="current-weather">
+          <h4>現在の天気 - ${escapeHtml(locationName)}</h4>
+          ${coordinates ? `<p><strong>座標:</strong> ${escapeHtml(coordinates)}</p>` : ''}
+      `;
+
+      // 天気予報データの処理
+      if (weatherData.length > 0) {
+        weatherContent += `</div><div class="forecast"><h4>天気予報</h4>`;
+        
+        weatherData.slice(0, 7).forEach(weather => {
+          const date = weather.Date || '';
+          const type = weather.Type || '';
+          const rainfall = weather.Rainfall !== undefined && weather.Rainfall !== null && weather.Rainfall !== '' 
+            ? `${weather.Rainfall}mm` 
+            : '0mm';
+          const temperature = weather.Temperature || {};
+          
+          // 日付フォーマット (YYYYMMDD → YYYY/MM/DD)
+          let formattedDate = date;
+          if (date && date.length === 8) {
+            formattedDate = `${date.substring(0, 4)}/${date.substring(4, 6)}/${date.substring(6, 8)}`;
+          }
+          
+          // 日本語での種類表示
+          let typeLabel = type;
+          switch (type) {
+            case 'today': typeLabel = '今日'; break;
+            case 'tomorrow': typeLabel = '明日'; break;
+            default: typeLabel = type || '予報';
+          }
+
+          weatherContent += `
+            <div class="forecast-day">
+              <p><strong>${typeLabel}${formattedDate ? ` (${formattedDate})` : ''}:</strong></p>
+              ${temperature.Min?.Celsius ? `<p>最低気温: ${temperature.Min.Celsius}°C</p>` : ''}
+              ${temperature.Max?.Celsius ? `<p>最高気温: ${temperature.Max.Celsius}°C</p>` : ''}
+              <p>降水量: ${rainfall}</p>
+            </div>
+          `;
+        });
+        
+        weatherContent += `</div>`;
+      } else {
+        weatherContent += `<p>天気予報データがありません</p></div>`;
+      }
+
+      // エリアコード情報があれば表示
+      if (property.WeatherAreaCode) {
+        weatherContent += `
+          <div class="weather-info">
+            <p><small>天気エリアコード: ${escapeHtml(property.WeatherAreaCode)}</small></p>
+          </div>
+        `;
+      }
+
+      return weatherContent;
+
+    } catch (error) {
+      console.error('Yahoo Weather データの解析エラー:', error);
+      return `
+        <div class="current-weather">
+          <h4>Yahoo Weather データ</h4>
+          <p>データの解析中にエラーが発生しました</p>
+          <details>
+            <summary>詳細なデータ (トラブルシューティング用)</summary>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          </details>
+        </div>
+      `;
+    }
   }
 
   /**
