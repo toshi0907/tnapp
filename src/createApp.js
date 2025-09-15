@@ -37,10 +37,11 @@ function createApp() {
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-        "img-src": ["'self'", "data:", "https://www.google.com", "https://cdn-ak.favicon.st-hatena.com"]
+        "img-src": ["'self'", "data:", "https://www.google.com", "https://cdn-ak.favicon.st-hatena.com"],
+        "script-src": ["'self'", "https://cdn.jsdelivr.net"]
       }
     }
-  }));  // セキュリティヘッダーを自動設定（XSS, CSP等）、favicon用のimg-src許可を含む
+  }));  // セキュリティヘッダーを自動設定（XSS, CSP等）、favicon用のimg-src許可とChart.js CDN用のscript-src許可を含む
   app.use(cors());  // 全オリジンからのアクセスを許可
   
   // リクエストボディの解析設定

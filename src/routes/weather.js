@@ -726,11 +726,35 @@ router.get('/graphs/temperature/:locationId', async (req, res) => {
     const latestData = await weatherStorage.getLatestWeatherForLocation(locationId, 'weatherapi');
     
     if (latestData.length === 0 || !latestData[0].data || !latestData[0].data.hourlyTemperature) {
-      // データが無い場合は手動で取得
-      const freshData = await weatherService.fetchWeatherManually(locationId, 'weatherapi');
-      if (!freshData.hourlyTemperature) {
-        return res.status(500).json({
-          error: 'Temperature data not available'
+      // データが無い場合は手動で取得を試行
+      try {
+        const freshData = await weatherService.fetchWeatherManually(locationId, 'weatherapi');
+        if (freshData.hourlyTemperature) {
+          return res.json({
+            locationId: parseInt(locationId),
+            location: {
+              name: location.name,
+              latitude: location.latitude,
+              longitude: location.longitude
+            },
+            data: freshData.hourlyTemperature,
+            generatedAt: new Date().toISOString()
+          });
+        }
+      } catch (fetchError) {
+        console.warn('手動での天気データ取得に失敗、モックデータを生成します:', fetchError.message);
+      }
+      
+      // 外部API接続に失敗した場合は、デモ用のモックデータを生成
+      const mockTemperatureData = [];
+      const now = new Date();
+      for (let i = 0; i < 24; i++) {
+        const time = new Date(now.getTime() + (i - 12) * 60 * 60 * 1000);
+        const baseTemp = 20 + Math.sin(i * Math.PI / 12) * 8; // 正弦波で温度変化を模擬
+        mockTemperatureData.push({
+          time: time.toISOString(),
+          temperature: Math.round((baseTemp + Math.random() * 2 - 1) * 10) / 10, // 小数点1位まで
+          condition: i % 4 === 0 ? '晴れ' : i % 4 === 1 ? '曇り' : i % 4 === 2 ? '雨' : '雪'
         });
       }
       
@@ -741,8 +765,9 @@ router.get('/graphs/temperature/:locationId', async (req, res) => {
           latitude: location.latitude,
           longitude: location.longitude
         },
-        data: freshData.hourlyTemperature,
-        generatedAt: new Date().toISOString()
+        data: mockTemperatureData,
+        generatedAt: new Date().toISOString(),
+        note: 'デモ用のモックデータです'
       });
     }
     
@@ -838,11 +863,37 @@ router.get('/graphs/rainfall/:locationId', async (req, res) => {
     const latestData = await weatherStorage.getLatestWeatherForLocation(locationId, 'yahoo');
     
     if (latestData.length === 0 || !latestData[0].data || !latestData[0].data.hourlyRainfall) {
-      // データが無い場合は手動で取得
-      const freshData = await weatherService.fetchWeatherManually(locationId, 'yahoo');
-      if (!freshData.hourlyRainfall) {
-        return res.status(500).json({
-          error: 'Rainfall data not available'
+      // データが無い場合は手動で取得を試行
+      try {
+        const freshData = await weatherService.fetchWeatherManually(locationId, 'yahoo');
+        if (freshData.hourlyRainfall) {
+          return res.json({
+            locationId: parseInt(locationId),
+            location: {
+              name: location.name,
+              latitude: location.latitude,
+              longitude: location.longitude
+            },
+            data: freshData.hourlyRainfall,
+            generatedAt: new Date().toISOString()
+          });
+        }
+      } catch (fetchError) {
+        console.warn('手動での天気データ取得に失敗、モックデータを生成します:', fetchError.message);
+      }
+      
+      // 外部API接続に失敗した場合は、デモ用のモックデータを生成
+      const mockRainfallData = [];
+      const now = new Date();
+      for (let i = 0; i < 24; i++) {
+        const time = new Date(now.getTime() + (i - 12) * 60 * 60 * 1000);
+        // 降雨量は確率的に0または値があるデータを生成
+        const hasRain = Math.random() < 0.3; // 30%の確率で雨
+        const rainfall = hasRain ? Math.round(Math.random() * 10 * 10) / 10 : 0;
+        mockRainfallData.push({
+          time: time.toISOString(),
+          rainfall: rainfall,
+          condition: rainfall > 5 ? '大雨' : rainfall > 1 ? '雨' : rainfall > 0 ? '小雨' : '晴れ'
         });
       }
       
@@ -853,8 +904,9 @@ router.get('/graphs/rainfall/:locationId', async (req, res) => {
           latitude: location.latitude,
           longitude: location.longitude
         },
-        data: freshData.hourlyRainfall,
-        generatedAt: new Date().toISOString()
+        data: mockRainfallData,
+        generatedAt: new Date().toISOString(),
+        note: 'デモ用のモックデータです'
       });
     }
     
