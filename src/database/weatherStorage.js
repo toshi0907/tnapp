@@ -85,7 +85,7 @@ class WeatherStorage {
    * 全ての天気データを取得
    * @param {Object} filters - フィルタオプション
    * @param {string|number} [filters.locationId] - 位置情報ID
-   * @param {string} [filters.apiSource] - APIソース (openmeteo, weatherapi, yahoo)
+   * @param {string} [filters.apiSource] - APIソース (weatherapi, yahoo)
    * @param {number} [filters.limit] - 取得件数制限
    * @returns {Array} 天気データの配列
    */
@@ -139,7 +139,7 @@ class WeatherStorage {
     
     if (!apiSource) {
       // 全APIソースの最新データを1つずつ取得
-      const sources = ['openmeteo', 'weatherapi', 'yahoo'];
+      const sources = ['weatherapi', 'yahoo'];
       const latestData = [];
       
       for (const source of sources) {
@@ -160,7 +160,7 @@ class WeatherStorage {
    * 新しい天気データを追加
    * @param {Object} weatherData - 追加する天気データ
    * @param {string|number} weatherData.locationId - 位置情報ID
-   * @param {string} weatherData.apiSource - APIソース (openmeteo, weatherapi, yahoo)
+   * @param {string} weatherData.apiSource - APIソース (weatherapi, yahoo)
    * @param {Object} weatherData.data - APIレスポンスデータ
    * @param {string} [weatherData.error] - エラーメッセージ（取得失敗時）
    * @returns {Object} 作成された天気データオブジェクト
@@ -173,8 +173,8 @@ class WeatherStorage {
       throw new Error('Location ID is required');
     }
     
-    if (!apiSource || !['openmeteo', 'weatherapi', 'yahoo'].includes(apiSource)) {
-      throw new Error('API source must be one of: openmeteo, weatherapi, yahoo');
+    if (!apiSource || !['weatherapi', 'yahoo'].includes(apiSource)) {
+      throw new Error('API source must be one of: weatherapi, yahoo');
     }
     
     if (!data && !error) {
@@ -243,7 +243,7 @@ class WeatherStorage {
     };
     
     // APIソース別統計
-    ['openmeteo', 'weatherapi', 'yahoo'].forEach(source => {
+    ['weatherapi', 'yahoo'].forEach(source => {
       const sourceData = allWeatherData.filter(data => data.apiSource === source);
       stats.apiSources[source] = {
         total: sourceData.length,

@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Weather Information</title>
   <link rel="stylesheet" href="/public/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/public/weather/app.js" defer></script>
 </head>
 
@@ -65,13 +66,36 @@
       <label for="api-source-filter">APIソース:</label>
       <select id="api-source-filter">
         <option value="">全て</option>
-        <option value="openmeteo">Open Meteo</option>
         <option value="weatherapi">WeatherAPI</option>
         <option value="yahoo">Yahoo Weather</option>
       </select>
       <button id="refresh-weather-btn" class="btn btn-secondary">🔄 天気データ更新</button>
     </div>
     <div id="weather-container"></div>
+  </section>
+
+  <!-- グラフ表示セクション -->
+  <section class="graphs-section">
+    <h2>天気グラフ</h2>
+    <div class="graph-controls">
+      <label for="location-select">位置選択:</label>
+      <select id="location-select">
+        <option value="">位置を選択してください</option>
+      </select>
+      <button id="load-graphs-btn" class="btn btn-primary">📊 グラフを表示</button>
+    </div>
+    
+    <!-- 気温グラフ -->
+    <div class="graph-container">
+      <h3>24時間気温変化 (WeatherAPI)</h3>
+      <div id="temperature-chart" class="chart-container"></div>
+    </div>
+    
+    <!-- 降雨量グラフ -->
+    <div class="graph-container">
+      <h3>24時間降雨量 (Yahoo Weather)</h3>
+      <div id="rainfall-chart" class="chart-container"></div>
+    </div>
   </section>
 
   <!-- 戻るリンク -->
