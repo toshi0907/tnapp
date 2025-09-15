@@ -124,7 +124,7 @@ describe('Weather API Tests', () => {
         {
           id: 1,
           locationId: 1,
-          apiSource: 'openmeteo',
+          apiSource: 'weatherapi',
           data: { temperature: 25 },
           error: null,
           success: true,
@@ -147,7 +147,7 @@ describe('Weather API Tests', () => {
         {
           id: 1,
           locationId: 1,
-          apiSource: 'openmeteo',
+          apiSource: 'weatherapi',
           data: { temperature: 25 },
           error: null,
           success: true,
@@ -170,7 +170,7 @@ describe('Weather API Tests', () => {
         {
           id: 1,
           locationId: 1,
-          apiSource: 'openmeteo',
+          apiSource: 'weatherapi',
           data: { temperature: 25 },
           error: null,
           success: true,
@@ -197,7 +197,6 @@ describe('Weather API Tests', () => {
         activeLocations: 1,
         scheduledJobs: 1,
         apiConfiguration: {
-          openmeteo: { configured: true, requiresKey: false },
           weatherapi: { configured: false, requiresKey: true },
           yahoo: { configured: false, requiresKey: true }
         },

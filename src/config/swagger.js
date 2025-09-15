@@ -369,9 +369,9 @@ const options = {
             },
             apiSource: {
               type: 'string',
-              enum: ['openmeteo', 'weatherapi', 'yahoo'],
+              enum: ['weatherapi', 'yahoo'],
               description: '天気APIソース',
-              example: 'openmeteo'
+              example: 'weatherapi'
             },
             data: {
               type: 'object',

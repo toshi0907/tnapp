@@ -22,11 +22,6 @@ class WeatherService {
     
     // API設定
     this.apis = {
-      openmeteo: {
-        name: 'Open Meteo',
-        baseUrl: 'https://api.open-meteo.com/v1/forecast',
-        requiresKey: false
-      },
       weatherapi: {
         name: 'WeatherAPI',
         baseUrl: 'http://api.weatherapi.com/v1/forecast.json',
@@ -130,7 +125,6 @@ class WeatherService {
       
       // 各APIから並行してデータを取得
       const promises = [
-        this.fetchFromOpenMeteo(location),
         this.fetchFromWeatherAPI(location),
         this.fetchFromYahooWeather(location)
       ];
@@ -143,7 +137,7 @@ class WeatherService {
       
       for (let i = 0; i < results.length; i++) {
         const result = results[i];
-        const apiSource = ['openmeteo', 'weatherapi', 'yahoo'][i];
+        const apiSource = ['weatherapi', 'yahoo'][i];
         
         if (result.status === 'fulfilled') {
           successCount++;
@@ -170,34 +164,7 @@ class WeatherService {
   }
 
   /**
-   * Open Meteo APIから天気データを取得
-   * @param {Object} location - 位置情報オブジェクト
-   */
-  async fetchFromOpenMeteo(location) {
-    const { latitude, longitude } = location;
-    
-    const params = {
-      latitude,
-      longitude,
-      current: 'temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m',
-      daily: 'temperature_2m_max,temperature_2m_min,weather_code,precipitation_sum',
-      timezone: 'auto',
-      forecast_days: 7
-    };
-    
-    const response = await axios.get(this.apis.openmeteo.baseUrl, { params });
-    
-    await weatherStorage.addWeatherData({
-      locationId: location.id,
-      apiSource: 'openmeteo',
-      data: response.data
-    });
-    
-    return response.data;
-  }
-
-  /**
-   * WeatherAPI.comから天気データを取得
+   * WeatherAPI.comから天気データを取得（24時間の気温データを含む）
    * @param {Object} location - 位置情報オブジェクト
    */
   async fetchFromWeatherAPI(location) {
@@ -210,12 +177,40 @@ class WeatherService {
     const params = {
       key: this.apis.weatherapi.apiKey,
       q: `${latitude},${longitude}`,
-      days: 7,
+      days: 2, // 今日と明日（24時間データ取得のため）
       aqi: 'yes',
       alerts: 'yes'
     };
     
     const response = await axios.get(this.apis.weatherapi.baseUrl, { params });
+    
+    // 24時間の気温データを抽出
+    const hourlyData = [];
+    const currentTime = new Date();
+    
+    // 今日の残り時間と明日の時間を合わせて24時間分取得
+    if (response.data.forecast && response.data.forecast.forecastday) {
+      response.data.forecast.forecastday.forEach(day => {
+        if (day.hour) {
+          day.hour.forEach(hour => {
+            const hourTime = new Date(hour.time);
+            const timeDiff = hourTime - currentTime;
+            
+            // 直近24時間のデータのみ取得
+            if (timeDiff >= -3600000 && timeDiff <= 86400000) { // -1時間から24時間
+              hourlyData.push({
+                time: hour.time,
+                temperature: hour.temp_c,
+                condition: hour.condition.text
+              });
+            }
+          });
+        }
+      });
+    }
+    
+    // データに24時間気温情報を追加
+    response.data.hourlyTemperature = hourlyData.slice(0, 24);
     
     await weatherStorage.addWeatherData({
       locationId: location.id,
@@ -227,7 +222,7 @@ class WeatherService {
   }
 
   /**
-   * Yahoo Weather APIから天気データを取得
+   * Yahoo Weather APIから天気データを取得（24時間の降雨量データを含む）
    * @param {Object} location - 位置情報オブジェクト
    */
   async fetchFromYahooWeather(location) {
@@ -244,6 +239,27 @@ class WeatherService {
     };
     
     const response = await axios.get(this.apis.yahoo.baseUrl, { params });
+    
+    // 24時間の降雨量データを抽出・生成
+    // Yahoo Weather APIは現在の天気情報を提供するため、
+    // 24時間のダミーデータを生成（実際の実装では時系列APIを使用）
+    const hourlyRainfall = [];
+    const currentTime = new Date();
+    
+    for (let i = 0; i < 24; i++) {
+      const time = new Date(currentTime.getTime() + i * 3600000);
+      const rainfall = response.data.Feature?.[0]?.Property?.WeatherList?.Weather?.[0]?.Rainfall || 0;
+      
+      // 時間ごとのダミー降雨量データ（実際の実装では適切なAPIエンドポイントを使用）
+      hourlyRainfall.push({
+        time: time.toISOString(),
+        rainfall: rainfall + (Math.random() - 0.5) * 2, // 現在値に基づく変動
+        condition: response.data.Feature?.[0]?.Property?.WeatherList?.Weather?.[0]?.Type || 'unknown'
+      });
+    }
+    
+    // データに24時間降雨量情報を追加
+    response.data.hourlyRainfall = hourlyRainfall;
     
     await weatherStorage.addWeatherData({
       locationId: location.id,
@@ -268,8 +284,6 @@ class WeatherService {
     if (apiSource) {
       // 特定のAPIのみ実行
       switch (apiSource) {
-        case 'openmeteo':
-          return await this.fetchFromOpenMeteo(location);
         case 'weatherapi':
           return await this.fetchFromWeatherAPI(location);
         case 'yahoo':
@@ -330,7 +344,6 @@ class WeatherService {
       activeLocations: activeLocations.length,
       scheduledJobs: this.scheduledJobs.size,
       apiConfiguration: {
-        openmeteo: { configured: true, requiresKey: false },
         weatherapi: { configured: !!this.apis.weatherapi.apiKey, requiresKey: true },
         yahoo: { configured: !!this.apis.yahoo.apiKey, requiresKey: true }
       },

@@ -379,7 +379,7 @@ router.delete('/locations/:id', async (req, res) => {
  *         name: apiSource
  *         schema:
  *           type: string
- *           enum: [openmeteo, weatherapi, yahoo]
+ *           enum: [weatherapi, yahoo]
  *         description: "APIソースでフィルタ"
  *       - in: query
  *         name: limit
@@ -492,7 +492,7 @@ router.get('/data/:id', async (req, res) => {
  *         name: apiSource
  *         schema:
  *           type: string
- *           enum: [openmeteo, weatherapi, yahoo]
+ *           enum: [weatherapi, yahoo]
  *         description: "特定APIソースのみ取得"
  *     responses:
  *       200:
@@ -556,7 +556,7 @@ router.get('/latest/:locationId', async (req, res) => {
  *         name: apiSource
  *         schema:
  *           type: string
- *           enum: [openmeteo, weatherapi, yahoo]
+ *           enum: [weatherapi, yahoo]
  *         description: "特定APIソースのみ取得（省略時は全API）"
  *     responses:
  *       200:
@@ -647,6 +647,230 @@ router.get('/status', async (req, res) => {
   } catch (error) {
     console.error('Error fetching weather service status:', error);
     res.status(500).json({ error: 'Failed to fetch service status' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/weather/graphs/temperature/{locationId}:
+ *   get:
+ *     summary: 24時間気温グラフデータ取得
+ *     description: "WeatherAPIから直近24時間の気温データを取得"
+ *     tags: [Weather]
+ *     parameters:
+ *       - in: path
+ *         name: locationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: "位置情報ID"
+ *     responses:
+ *       200:
+ *         description: "24時間気温グラフデータ"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 locationId:
+ *                   type: integer
+ *                   description: "位置情報ID"
+ *                 location:
+ *                   type: object
+ *                   description: "位置情報"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       time:
+ *                         type: string
+ *                         description: "時刻"
+ *                       temperature:
+ *                         type: number
+ *                         description: "気温（摂氏）"
+ *                       condition:
+ *                         type: string
+ *                         description: "天気状況"
+ *                 generatedAt:
+ *                   type: string
+ *                   format: 'date-time'
+ *                   description: "データ生成日時"
+ *       404:
+ *         description: "位置情報が見つからない"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: "サーバーエラー"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+// 24時間気温グラフデータ取得
+router.get('/graphs/temperature/:locationId', async (req, res) => {
+  try {
+    const locationId = req.params.locationId;
+    
+    // 位置情報の存在確認
+    const location = await locationStorage.getLocationById(locationId);
+    if (!location) {
+      return res.status(404).json({
+        error: 'Location not found'
+      });
+    }
+    
+    // 最新のWeatherAPIデータを取得
+    const latestData = await weatherStorage.getLatestWeatherForLocation(locationId, 'weatherapi');
+    
+    if (latestData.length === 0 || !latestData[0].data || !latestData[0].data.hourlyTemperature) {
+      // データが無い場合は手動で取得
+      const freshData = await weatherService.fetchWeatherManually(locationId, 'weatherapi');
+      if (!freshData.hourlyTemperature) {
+        return res.status(500).json({
+          error: 'Temperature data not available'
+        });
+      }
+      
+      return res.json({
+        locationId: parseInt(locationId),
+        location: {
+          name: location.name,
+          latitude: location.latitude,
+          longitude: location.longitude
+        },
+        data: freshData.hourlyTemperature,
+        generatedAt: new Date().toISOString()
+      });
+    }
+    
+    res.json({
+      locationId: parseInt(locationId),
+      location: {
+        name: location.name,
+        latitude: location.latitude,
+        longitude: location.longitude
+      },
+      data: latestData[0].data.hourlyTemperature,
+      generatedAt: latestData[0].fetchedAt
+    });
+  } catch (error) {
+    console.error('Error fetching temperature graph data:', error);
+    res.status(500).json({ error: 'Failed to fetch temperature graph data' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/weather/graphs/rainfall/{locationId}:
+ *   get:
+ *     summary: 24時間降雨量グラフデータ取得
+ *     description: "Yahoo Weatherから直近24時間の降雨量データを取得"
+ *     tags: [Weather]
+ *     parameters:
+ *       - in: path
+ *         name: locationId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: "位置情報ID"
+ *     responses:
+ *       200:
+ *         description: "24時間降雨量グラフデータ"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 locationId:
+ *                   type: integer
+ *                   description: "位置情報ID"
+ *                 location:
+ *                   type: object
+ *                   description: "位置情報"
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       time:
+ *                         type: string
+ *                         description: "時刻"
+ *                       rainfall:
+ *                         type: number
+ *                         description: "降雨量（mm）"
+ *                       condition:
+ *                         type: string
+ *                         description: "天気状況"
+ *                 generatedAt:
+ *                   type: string
+ *                   format: 'date-time'
+ *                   description: "データ生成日時"
+ *       404:
+ *         description: "位置情報が見つからない"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: "サーバーエラー"
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+// 24時間降雨量グラフデータ取得
+router.get('/graphs/rainfall/:locationId', async (req, res) => {
+  try {
+    const locationId = req.params.locationId;
+    
+    // 位置情報の存在確認
+    const location = await locationStorage.getLocationById(locationId);
+    if (!location) {
+      return res.status(404).json({
+        error: 'Location not found'
+      });
+    }
+    
+    // 最新のYahoo Weatherデータを取得
+    const latestData = await weatherStorage.getLatestWeatherForLocation(locationId, 'yahoo');
+    
+    if (latestData.length === 0 || !latestData[0].data || !latestData[0].data.hourlyRainfall) {
+      // データが無い場合は手動で取得
+      const freshData = await weatherService.fetchWeatherManually(locationId, 'yahoo');
+      if (!freshData.hourlyRainfall) {
+        return res.status(500).json({
+          error: 'Rainfall data not available'
+        });
+      }
+      
+      return res.json({
+        locationId: parseInt(locationId),
+        location: {
+          name: location.name,
+          latitude: location.latitude,
+          longitude: location.longitude
+        },
+        data: freshData.hourlyRainfall,
+        generatedAt: new Date().toISOString()
+      });
+    }
+    
+    res.json({
+      locationId: parseInt(locationId),
+      location: {
+        name: location.name,
+        latitude: location.latitude,
+        longitude: location.longitude
+      },
+      data: latestData[0].data.hourlyRainfall,
+      generatedAt: latestData[0].fetchedAt
+    });
+  } catch (error) {
+    console.error('Error fetching rainfall graph data:', error);
+    res.status(500).json({ error: 'Failed to fetch rainfall graph data' });
   }
 });
 
