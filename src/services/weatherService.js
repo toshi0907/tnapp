@@ -63,26 +63,52 @@ class WeatherService {
 
   /**
    * 位置情報に対して定期的な天気データ取得をスケジュール
+   * 各API毎に異なる取得頻度を設定
    * @param {string|number} locationId - 位置情報ID
    */
   async scheduleWeatherFetching(locationId) {
     // 既存のスケジュールがある場合はキャンセル
     if (this.scheduledJobs.has(locationId)) {
-      this.scheduledJobs.get(locationId).cancel();
+      const existingJobs = this.scheduledJobs.get(locationId);
+      if (Array.isArray(existingJobs)) {
+        existingJobs.forEach(job => job.cancel());
+      } else {
+        existingJobs.cancel();
+      }
     }
     
-    // 毎時0分に天気データを取得（1時間間隔）
-    const job = schedule.scheduleJob('0 * * * *', async () => {
+    const jobs = [];
+    
+    // WeatherAPI: 30分毎に取得（0分と30分）
+    const weatherApiJob = schedule.scheduleJob('*/30 * * * *', async () => {
       try {
-        await this.fetchWeatherForLocation(locationId);
+        await this.fetchWeatherAPIForLocation(locationId);
       } catch (error) {
-        console.error(`❌ Scheduled weather fetch failed for location ${locationId}:`, error);
+        console.error(`❌ Scheduled WeatherAPI fetch failed for location ${locationId}:`, error);
       }
     });
     
-    if (job) {
-      this.scheduledJobs.set(locationId, job);
-      console.log(`⏰ Scheduled weather fetching for location ${locationId}`);
+    // Yahoo Weather API: 10分毎に取得
+    const yahooApiJob = schedule.scheduleJob('*/10 * * * *', async () => {
+      try {
+        await this.fetchYahooWeatherForLocation(locationId);
+      } catch (error) {
+        console.error(`❌ Scheduled Yahoo Weather fetch failed for location ${locationId}:`, error);
+      }
+    });
+    
+    if (weatherApiJob) {
+      jobs.push(weatherApiJob);
+      console.log(`⏰ Scheduled WeatherAPI fetching for location ${locationId} (every 30 minutes)`);
+    }
+    
+    if (yahooApiJob) {
+      jobs.push(yahooApiJob);
+      console.log(`⏰ Scheduled Yahoo Weather fetching for location ${locationId} (every 10 minutes)`);
+    }
+    
+    if (jobs.length > 0) {
+      this.scheduledJobs.set(locationId, jobs);
       
       // 初回は即座に実行
       try {
@@ -99,9 +125,89 @@ class WeatherService {
    */
   cancelSchedule(locationId) {
     if (this.scheduledJobs.has(locationId)) {
-      this.scheduledJobs.get(locationId).cancel();
+      const jobs = this.scheduledJobs.get(locationId);
+      if (Array.isArray(jobs)) {
+        jobs.forEach(job => job.cancel());
+        console.log(`🚫 Cancelled ${jobs.length} weather fetching schedules for location ${locationId}`);
+      } else {
+        jobs.cancel();
+        console.log(`🚫 Cancelled weather fetching schedule for location ${locationId}`);
+      }
       this.scheduledJobs.delete(locationId);
-      console.log(`🚫 Cancelled weather fetching schedule for location ${locationId}`);
+    }
+  }
+
+  /**
+   * 特定位置情報に対してWeatherAPIのみから天気データを取得
+   * @param {string|number} locationId - 位置情報ID
+   */
+  async fetchWeatherAPIForLocation(locationId) {
+    try {
+      const location = await locationStorage.getLocationById(locationId);
+      if (!location) {
+        throw new Error(`Location with ID ${locationId} not found`);
+      }
+      
+      if (!location.active) {
+        console.log(`⏭️ Skipping inactive location ${locationId} (WeatherAPI)`);
+        return;
+      }
+      
+      console.log(`🌤️ Fetching WeatherAPI data for location ${locationId} (${location.latitude}, ${location.longitude})`);
+      
+      try {
+        await this.fetchFromWeatherAPI(location);
+        console.log(`✅ WeatherAPI data fetched successfully for location ${locationId}`);
+      } catch (error) {
+        console.error(`❌ WeatherAPI fetch failed for location ${locationId}:`, error);
+        
+        // エラーもデータベースに記録
+        await weatherStorage.addWeatherData({
+          locationId,
+          apiSource: 'weatherapi',
+          data: null,
+          error: error.message || 'Unknown error'
+        });
+      }
+    } catch (error) {
+      console.error(`❌ Failed to fetch WeatherAPI data for location ${locationId}:`, error);
+    }
+  }
+
+  /**
+   * 特定位置情報に対してYahoo Weather APIのみから天気データを取得
+   * @param {string|number} locationId - 位置情報ID
+   */
+  async fetchYahooWeatherForLocation(locationId) {
+    try {
+      const location = await locationStorage.getLocationById(locationId);
+      if (!location) {
+        throw new Error(`Location with ID ${locationId} not found`);
+      }
+      
+      if (!location.active) {
+        console.log(`⏭️ Skipping inactive location ${locationId} (Yahoo Weather)`);
+        return;
+      }
+      
+      console.log(`🌤️ Fetching Yahoo Weather data for location ${locationId} (${location.latitude}, ${location.longitude})`);
+      
+      try {
+        await this.fetchFromYahooWeather(location);
+        console.log(`✅ Yahoo Weather data fetched successfully for location ${locationId}`);
+      } catch (error) {
+        console.error(`❌ Yahoo Weather fetch failed for location ${locationId}:`, error);
+        
+        // エラーもデータベースに記録
+        await weatherStorage.addWeatherData({
+          locationId,
+          apiSource: 'yahoo',
+          data: null,
+          error: error.message || 'Unknown error'
+        });
+      }
+    } catch (error) {
+      console.error(`❌ Failed to fetch Yahoo Weather data for location ${locationId}:`, error);
     }
   }
 
@@ -300,20 +406,21 @@ class WeatherService {
 
   /**
    * 古いデータのクリーンアップをスケジュール
+   * データ保存期間: 24時間
    */
   scheduleDataCleanup() {
-    // 毎日午前2時にクリーンアップを実行
-    schedule.scheduleJob('0 2 * * *', async () => {
+    // 2時間毎に24時間より古いデータをクリーンアップ
+    schedule.scheduleJob('0 */2 * * *', async () => {
       try {
-        console.log('🗑️ Starting weather data cleanup...');
-        const deletedCount = await weatherStorage.cleanupOldData(30);  // 30日より古いデータを削除
+        console.log('🗑️ Starting weather data cleanup (24 hour retention)...');
+        const deletedCount = await weatherStorage.cleanupOldData(1);  // 1日より古いデータを削除
         console.log(`✅ Weather data cleanup completed: ${deletedCount} records deleted`);
       } catch (error) {
         console.error('❌ Weather data cleanup failed:', error);
       }
     });
     
-    console.log('⏰ Scheduled daily weather data cleanup at 02:00');
+    console.log('⏰ Scheduled weather data cleanup every 2 hours (24 hour retention)');
   }
 
   /**
@@ -323,9 +430,14 @@ class WeatherService {
     console.log('🛑 Shutting down Weather Service...');
     
     // 全てのスケジュールされたジョブをキャンセル
-    for (const [locationId, job] of this.scheduledJobs) {
-      job.cancel();
-      console.log(`🚫 Cancelled schedule for location ${locationId}`);
+    for (const [locationId, jobs] of this.scheduledJobs) {
+      if (Array.isArray(jobs)) {
+        jobs.forEach(job => job.cancel());
+        console.log(`🚫 Cancelled ${jobs.length} schedules for location ${locationId}`);
+      } else {
+        jobs.cancel();
+        console.log(`🚫 Cancelled schedule for location ${locationId}`);
+      }
     }
     
     this.scheduledJobs.clear();
@@ -339,10 +451,25 @@ class WeatherService {
     const stats = await weatherStorage.getStatistics();
     const activeLocations = await locationStorage.getActiveLocations();
     
+    // 実際のジョブ数を計算（各位置で2つのAPI用ジョブ）
+    let totalJobs = 0;
+    for (const jobs of this.scheduledJobs.values()) {
+      if (Array.isArray(jobs)) {
+        totalJobs += jobs.length;
+      } else {
+        totalJobs += 1;
+      }
+    }
+    
     return {
       isRunning: true,
       activeLocations: activeLocations.length,
-      scheduledJobs: this.scheduledJobs.size,
+      scheduledJobs: totalJobs,
+      dataRetentionHours: 24,  // 24時間保持
+      fetchFrequency: {
+        weatherapi: '30 minutes',
+        yahoo: '10 minutes'
+      },
       apiConfiguration: {
         weatherapi: { configured: !!this.apis.weatherapi.apiKey, requiresKey: true },
         yahoo: { configured: !!this.apis.yahoo.apiKey, requiresKey: true }
