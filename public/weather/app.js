@@ -30,12 +30,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // フィルタ要素の参照を取得
   const apiSourceFilter = document.getElementById('api-source-filter');
-  const locationSelect = document.getElementById('location-select');
-  const loadGraphsBtn = document.getElementById('load-graphs-btn');
-  
-  // Chart.jsインスタンスを保持する変数
-  let temperatureChart = null;
-  let rainfallChart = null;
   
   // API設定とBasic認証情報を動的に取得
   let LOCATIONS_API;   // 位置情報APIベースURL
@@ -115,27 +109,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const locations = await response.json();
       displayLocations(locations);
-      populateLocationSelect(locations);
     } catch (error) {
       console.error('位置情報の取得エラー:', error);
       showMessage('位置情報の取得に失敗しました', 'error');
     }
   }
 
-  /**
-   * 位置選択セレクトボックスを設定
-   * @param {Array} locations - 位置情報配列
-   */
-  function populateLocationSelect(locations) {
-    locationSelect.innerHTML = '<option value="">位置を選択してください</option>';
-    
-    locations.forEach(location => {
-      const option = document.createElement('option');
-      option.value = location.id;
-      option.textContent = `${location.name} (${location.latitude}, ${location.longitude})`;
-      locationSelect.appendChild(option);
-    });
-  }
+
 
   /**
    * 位置情報一覧を画面に表示
@@ -541,213 +521,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  /**
-   * グラフデータをロードして表示
-   */
-  async function loadGraphs() {
-    const locationId = locationSelect.value;
-    if (!locationId) {
-      showMessage('位置を選択してください', 'error');
-      return;
-    }
-    
-    try {
-      // 両方のグラフを並行してロード
-      await Promise.all([
-        loadTemperatureGraph(locationId),
-        loadRainfallGraph(locationId)
-      ]);
-      
-      showMessage('グラフを更新しました', 'success');
-    } catch (error) {
-      console.error('グラフ読み込みエラー:', error);
-      showMessage('グラフの読み込みに失敗しました', 'error');
-    }
-  }
 
-  /**
-   * 24時間気温グラフを読み込み表示
-   * @param {string} locationId - 位置情報ID
-   */
-  async function loadTemperatureGraph(locationId) {
-    try {
-      const response = await fetch(`${WEATHER_API}/graphs/temperature/${locationId}`, {
-        headers: authHeaders
-      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
 
-      const data = await response.json();
-      
-      // Chart.jsでグラフを描画
-      displayTemperatureChart(data);
-    } catch (error) {
-      console.error('気温グラフデータ取得エラー:', error);
-      throw error;
-    }
-  }
 
-  /**
-   * 24時間降雨量グラフを読み込み表示
-   * @param {string} locationId - 位置情報ID
-   */
-  async function loadRainfallGraph(locationId) {
-    try {
-      const response = await fetch(`${WEATHER_API}/graphs/rainfall/${locationId}`, {
-        headers: authHeaders
-      });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
 
-      const data = await response.json();
-      
-      // Chart.jsでグラフを描画
-      displayRainfallChart(data);
-    } catch (error) {
-      console.error('降雨量グラフデータ取得エラー:', error);
-      throw error;
-    }
-  }
 
-  /**
-   * 気温グラフを表示
-   * @param {Object} data - 気温グラフデータ
-   */
-  function displayTemperatureChart(data) {
-    const ctx = document.getElementById('temperature-chart');
-    
-    // 既存のチャートを削除
-    if (temperatureChart) {
-      temperatureChart.destroy();
-    }
-    
-    // Canvas要素を再作成（Chart.jsの推奨方法）
-    ctx.innerHTML = '';
-    const canvas = document.createElement('canvas');
-    ctx.appendChild(canvas);
-    
-    const labels = data.data.map(item => {
-      const time = new Date(item.time);
-      return time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-    });
-    
-    const temperatures = data.data.map(item => item.temperature);
-    
-    temperatureChart = new Chart(canvas, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: '気温 (°C)',
-          data: temperatures,
-          borderColor: 'rgb(255, 99, 132)',
-          backgroundColor: 'rgba(255, 99, 132, 0.1)',
-          borderWidth: 2,
-          fill: true,
-          tension: 0.4
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          title: {
-            display: true,
-            text: `${data.location.name} - 24時間気温変化`
-          },
-          legend: {
-            display: true
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: false,
-            title: {
-              display: true,
-              text: '気温 (°C)'
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: '時刻'
-            }
-          }
-        }
-      }
-    });
-  }
 
-  /**
-   * 降雨量グラフを表示
-   * @param {Object} data - 降雨量グラフデータ
-   */
-  function displayRainfallChart(data) {
-    const ctx = document.getElementById('rainfall-chart');
-    
-    // 既存のチャートを削除
-    if (rainfallChart) {
-      rainfallChart.destroy();
-    }
-    
-    // Canvas要素を再作成
-    ctx.innerHTML = '';
-    const canvas = document.createElement('canvas');
-    ctx.appendChild(canvas);
-    
-    const labels = data.data.map(item => {
-      const time = new Date(item.time);
-      return time.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-    });
-    
-    const rainfall = data.data.map(item => Math.max(0, item.rainfall)); // 負の値を0に
-    
-    rainfallChart = new Chart(canvas, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: '降雨量 (mm)',
-          data: rainfall,
-          backgroundColor: 'rgba(54, 162, 235, 0.6)',
-          borderColor: 'rgba(54, 162, 235, 1)',
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          title: {
-            display: true,
-            text: `${data.location.name} - 24時間降雨量`
-          },
-          legend: {
-            display: true
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: '降雨量 (mm)'
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: '時刻'
-            }
-          }
-        }
-      }
-    });
-  }
+
 
   /**
    * APIソース名を取得
@@ -869,10 +651,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadWeatherData();
   });
 
-  // グラフ表示ボタン
-  loadGraphsBtn.addEventListener('click', () => {
-    loadGraphs();
-  });
 
   // 初期データロード
   await loadLocations();

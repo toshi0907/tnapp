@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Weather Information</title>
   <link rel="stylesheet" href="/public/style.css">
-  <script src="/public/libs/chart.min.js"></script>
+
   <script src="/public/weather/app.js" defer></script>
 </head>
 
@@ -74,29 +74,7 @@
     <div id="weather-container"></div>
   </section>
 
-  <!-- グラフ表示セクション -->
-  <section class="graphs-section">
-    <h2>天気グラフ</h2>
-    <div class="graph-controls">
-      <label for="location-select">位置選択:</label>
-      <select id="location-select">
-        <option value="">位置を選択してください</option>
-      </select>
-      <button id="load-graphs-btn" class="btn btn-primary">📊 グラフを表示</button>
-    </div>
-    
-    <!-- 気温グラフ -->
-    <div class="graph-container">
-      <h3>24時間気温変化 (WeatherAPI)</h3>
-      <div id="temperature-chart" class="chart-container"></div>
-    </div>
-    
-    <!-- 降雨量グラフ -->
-    <div class="graph-container">
-      <h3>24時間降雨量 (Yahoo Weather)</h3>
-      <div id="rainfall-chart" class="chart-container"></div>
-    </div>
-  </section>
+
 
   <!-- 戻るリンク -->
   <div class="back-link">
