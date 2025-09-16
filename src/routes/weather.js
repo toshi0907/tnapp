@@ -942,8 +942,8 @@ router.get('/graphs/rainfall/:locationId', async (req, res) => {
  *               daysToKeep:
  *                 type: integer
  *                 minimum: 1
- *                 description: "保持日数（デフォルト: 30日）"
- *                 example: 30
+ *                 description: "保持日数（デフォルト: 1日）"
+ *                 example: 1
  *     responses:
  *       200:
  *         description: "クリーンアップ完了"
@@ -965,7 +965,7 @@ router.get('/graphs/rainfall/:locationId', async (req, res) => {
 // 古いデータクリーンアップ
 router.post('/cleanup', async (req, res) => {
   try {
-    const { daysToKeep = 30 } = req.body;
+    const { daysToKeep = 1 } = req.body;  // デフォルトを1日（24時間）に変更
     const deletedRecords = await weatherStorage.cleanupOldData(daysToKeep);
     
     res.json({ deletedRecords });
