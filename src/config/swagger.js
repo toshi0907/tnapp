@@ -222,6 +222,12 @@ const options = {
               description: 'メッセージ内容',
               example: '明日の会議資料を確認してください'
             },
+            url: {
+              type: 'string',
+              format: 'uri',
+              description: '関連URL（Webhook通知ではクエリパラメータとして送信、Email通知では本文末尾に記載）',
+              example: 'https://example.com/meeting-details'
+            },
             notificationDateTime: {
               type: 'string',
               description: '通知日時 (year month day hour min形式)',

@@ -172,6 +172,11 @@ router.get('/:id', async (req, res) => {
  *                 type: string
  *                 description: "メッセージ内容"
  *                 example: "明日の会議資料を確認してください"
+ *               url:
+ *                 type: string
+ *                 format: uri
+ *                 description: "関連URL（Webhook通知ではクエリパラメータとして送信、Email通知では本文末尾に記載）"
+ *                 example: "https://example.com/meeting-details"
  *               notificationDateTime:
  *                 type: string
  *                 format: date-time
@@ -229,7 +234,7 @@ router.get('/:id', async (req, res) => {
 // 新規リマインダー作成
 router.post('/', async (req, res) => {
   try {
-    const { title, message, notificationDateTime, notificationMethod, category, tags, repeatSettings } = req.body;
+    const { title, message, url, notificationDateTime, notificationMethod, category, tags, repeatSettings } = req.body;
 
     // バリデーション
     if (!title || title.trim() === '') {
@@ -298,6 +303,7 @@ router.post('/', async (req, res) => {
     const newReminder = await reminderStorage.addReminder({ 
       title: title.trim(), 
       message, 
+      url: url || '',
       notificationDateTime: notificationDate.toISOString(), // 内部ではISO形式で保存
       notificationMethod: notificationMethod || 'webhook',
       category,
@@ -348,6 +354,10 @@ router.post('/', async (req, res) => {
  *               message:
  *                 type: string
  *                 description: "メッセージ内容"
+ *               url:
+ *                 type: string
+ *                 format: uri
+ *                 description: "関連URL"
  *               notificationDateTime:
  *                 type: string
  *                 format: date-time
@@ -408,7 +418,7 @@ router.post('/', async (req, res) => {
 // リマインダー更新
 router.put('/:id', async (req, res) => {
   try {
-    const { title, message, notificationDateTime, notificationMethod, notificationStatus, category, tags, repeatSettings } = req.body;
+    const { title, message, url, notificationDateTime, notificationMethod, notificationStatus, category, tags, repeatSettings } = req.body;
 
     // 既存リマインダーの確認
     const existingReminder = await reminderStorage.getReminderById(req.params.id);
@@ -455,6 +465,7 @@ router.put('/:id', async (req, res) => {
     const updateData = {
       ...(title !== undefined && { title: title.trim() }),
       ...(message !== undefined && { message }),
+      ...(url !== undefined && { url }),
       ...(notificationDateTime !== undefined && { notificationDateTime: parseFlexibleDate(notificationDateTime).toISOString() }),
       ...(notificationMethod !== undefined && { notificationMethod }),
       ...(notificationStatus !== undefined && { notificationStatus }),

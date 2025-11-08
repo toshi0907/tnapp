@@ -90,6 +90,7 @@ class ReminderStorage {
       id: Date.now(),
       title: reminderData.title,
       message: reminderData.message || '',
+      url: reminderData.url || '',
       notificationDateTime: reminderData.notificationDateTime,
       repeatSettings: reminderData.repeatSettings || null,
       notificationMethod: reminderData.notificationMethod || 'webhook',

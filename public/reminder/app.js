@@ -242,6 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div class="reminder-details">
             <p class="reminder-datetime">📅 ${formatDateTime(reminder.notificationDateTime)}</p>
             ${reminder.message ? `<p class="reminder-message">${reminder.message}</p>` : ''}
+            ${reminder.url ? `<p class="reminder-url">🔗 <a href="${reminder.url}" target="_blank" rel="noopener noreferrer">${reminder.url}</a></p>` : ''}
             ${reminder.category ? `<p class="reminder-category">📂 ${reminder.category}</p>` : ''}
             ${reminder.tags && reminder.tags.length > 0 ? `<p class="reminder-tags">🏷️ ${reminder.tags.join(', ')}</p>` : ''}
             ${reminder.repeatSettings ? `<p class="reminder-repeat">🔄 ${reminder.repeatSettings.interval}</p>` : ''}
@@ -321,6 +322,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // フォームに値を設定
     document.getElementById('title').value = reminder.title;
     document.getElementById('message').value = reminder.message || '';
+    document.getElementById('url').value = reminder.url || '';
     
     // 日時の変換（APIから受け取った形式を datetime-local に変換）
     const notificationDate = new Date(reminder.notificationDateTime);
@@ -411,9 +413,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    const url = document.getElementById('url').value.trim();
+
     const reminderData = {
       title,
       message: message || undefined,
+      url: url || undefined,
       notificationDateTime: notificationDate.toISOString(),
       notificationMethod,
       category: category || undefined,
