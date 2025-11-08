@@ -115,17 +115,21 @@ class NotificationService {
         id: reminder.id,
         title: reminder.title,
         message: reminder.message,
+        url: reminder.url,
         notificationDateTime: reminder.notificationDateTime,
         timezone: reminder.timezone,
         category: reminder.category,
         tags: reminder.tags
       };
 
-      // Add title and message as query parameters
+      // Add title, message and url as query parameters
       const url = new URL(process.env.WEBHOOK_URL);
       url.searchParams.append('title', reminder.title || '');
       if (reminder.message) {
         url.searchParams.append('message', reminder.message);
+      }
+      if (reminder.url) {
+        url.searchParams.append('url', reminder.url);
       }
 
       const response = await axios.post(url.toString(), payload, {
@@ -192,6 +196,10 @@ class NotificationService {
       text += `タグ: ${reminder.tags.join(', ')}\n`;
     }
     
+    if (reminder.url) {
+      text += `\nURL: ${reminder.url}`;
+    }
+    
     text += '\n---\nTN API Server';
     
     return text;
@@ -214,6 +222,10 @@ class NotificationService {
     
     if (reminder.tags && reminder.tags.length > 0) {
       html += `<p><strong>タグ:</strong> ${reminder.tags.join(', ')}</p>`;
+    }
+    
+    if (reminder.url) {
+      html += `<p><strong>URL:</strong> <a href="${reminder.url}">${reminder.url}</a></p>`;
     }
     
     html += '<hr><p><small>TN API Server</small></p>';
@@ -314,6 +326,7 @@ class NotificationService {
       id: 'test-' + Date.now(),
       title: 'Test Notification',
       message: 'This is a test notification from TN API Server',
+      url: 'https://example.com/test',
       notificationDateTime: new Date().toISOString(),
       timezone: 'Asia/Tokyo',
       category: 'test',
