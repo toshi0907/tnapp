@@ -88,6 +88,7 @@ class ReminderStorage {
     const reminders = await this.readData();
     const newReminder = {
       id: Date.now(),
+      ...reminderData,
       title: reminderData.title,
       message: reminderData.message || '',
       url: reminderData.url || '',
@@ -98,8 +99,7 @@ class ReminderStorage {
       lastNotificationDateTime: null,
       timezone: 'Asia/Tokyo',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...reminderData
+      updatedAt: new Date().toISOString()
     };
     
     reminders.push(newReminder);
