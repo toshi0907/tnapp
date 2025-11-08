@@ -596,4 +596,110 @@ describe('Reminders API', () => {
       });
     });
   });
+
+  describe('URL field handling', () => {
+    test('URL付きリマインダーの作成', async () => {
+      const newReminderData = {
+        title: 'URL付きリマインダー',
+        message: 'テストメッセージ',
+        url: 'https://example.com/meeting',
+        notificationDateTime: '2025-08-15T09:00:00.000Z',
+        notificationMethod: 'webhook',
+        category: 'work',
+        tags: ['meeting']
+      };
+
+      const mockCreatedReminder = {
+        id: 1,
+        ...newReminderData,
+        notificationStatus: 'pending',
+        timezone: 'Asia/Tokyo',
+        createdAt: '2025-08-01T10:00:00.000Z',
+        updatedAt: '2025-08-01T10:00:00.000Z'
+      };
+
+      reminderStorage.addReminder.mockResolvedValue(mockCreatedReminder);
+      notificationService.scheduleReminder.mockResolvedValue(true);
+
+      const response = await request(app)
+        .post('/api/reminders')
+        .send(newReminderData)
+        .expect(201);
+
+      expect(response.body).toEqual(mockCreatedReminder);
+      expect(reminderStorage.addReminder).toHaveBeenCalledWith(expect.objectContaining({
+        title: newReminderData.title,
+        message: newReminderData.message,
+        url: newReminderData.url,
+        notificationDateTime: newReminderData.notificationDateTime
+      }));
+    });
+
+    test('URLなしリマインダーの作成（デフォルト値）', async () => {
+      const newReminderData = {
+        title: 'URLなしリマインダー',
+        notificationDateTime: '2025-08-15T09:00:00.000Z',
+      };
+
+      const mockCreatedReminder = {
+        id: 1,
+        title: newReminderData.title,
+        message: '',
+        url: '',
+        notificationDateTime: newReminderData.notificationDateTime,
+        notificationMethod: 'webhook',
+        notificationStatus: 'pending',
+        timezone: 'Asia/Tokyo',
+        createdAt: '2025-08-01T10:00:00.000Z',
+        updatedAt: '2025-08-01T10:00:00.000Z'
+      };
+
+      reminderStorage.addReminder.mockResolvedValue(mockCreatedReminder);
+      notificationService.scheduleReminder.mockResolvedValue(true);
+
+      const response = await request(app)
+        .post('/api/reminders')
+        .send(newReminderData)
+        .expect(201);
+
+      expect(response.body.url).toBe('');
+      expect(reminderStorage.addReminder).toHaveBeenCalledWith(expect.objectContaining({
+        url: ''
+      }));
+    });
+
+    test('URLの更新', async () => {
+      const existingReminder = {
+        id: 1,
+        title: 'テストリマインダー',
+        message: 'テストメッセージ',
+        url: 'https://example.com/old',
+        notificationDateTime: '2025-08-15T09:00:00.000Z',
+        notificationStatus: 'pending'
+      };
+
+      const updateData = {
+        url: 'https://example.com/new'
+      };
+
+      const updatedReminder = {
+        ...existingReminder,
+        ...updateData,
+        updatedAt: '2025-08-02T10:00:00.000Z'
+      };
+
+      reminderStorage.getReminderById.mockResolvedValue(existingReminder);
+      reminderStorage.updateReminder.mockResolvedValue(updatedReminder);
+
+      const response = await request(app)
+        .put('/api/reminders/1')
+        .send(updateData)
+        .expect(200);
+
+      expect(response.body.url).toBe('https://example.com/new');
+      expect(reminderStorage.updateReminder).toHaveBeenCalledWith('1', expect.objectContaining({
+        url: 'https://example.com/new'
+      }));
+    });
+  });
 });

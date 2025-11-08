@@ -157,4 +157,94 @@ describe('Webhook Notification with Query Parameters', () => {
     expect(result).toBe(false);
     expect(mockedAxios.post).not.toHaveBeenCalled();
   });
+
+  test('URLフィールドがクエリパラメータとして含まれる', async () => {
+    mockedAxios.post.mockResolvedValue({
+      status: 200,
+      data: { received: true }
+    });
+
+    const testReminder = {
+      id: 'test-with-url',
+      title: 'URL付きリマインダー',
+      message: 'テストメッセージ',
+      url: 'https://example.com/meeting',
+      notificationDateTime: new Date().toISOString(),
+      timezone: 'Asia/Tokyo',
+      category: 'test',
+      tags: ['meeting']
+    };
+
+    const result = await NotificationService.sendWebhookNotification(testReminder);
+
+    expect(result).toBe(true);
+    
+    const callArgs = mockedAxios.post.mock.calls[0];
+    const calledUrl = callArgs[0];
+    const payload = callArgs[1];
+    
+    // URLクエリパラメータが含まれていることを確認
+    expect(calledUrl).toContain('title=');
+    expect(calledUrl).toContain('message=');
+    expect(calledUrl).toContain('url=https%3A%2F%2Fexample.com%2Fmeeting');
+    
+    // ペイロードにもurlが含まれていることを確認
+    expect(payload.url).toBe('https://example.com/meeting');
+  });
+
+  test('URLが空の場合、urlクエリパラメータは含まれない', async () => {
+    mockedAxios.post.mockResolvedValue({
+      status: 200,
+      data: { received: true }
+    });
+
+    const testReminder = {
+      id: 'test-no-url-field',
+      title: 'URLなしリマインダー',
+      message: 'テストメッセージ',
+      url: '',
+      notificationDateTime: new Date().toISOString(),
+      timezone: 'Asia/Tokyo',
+      category: 'test',
+      tags: []
+    };
+
+    const result = await NotificationService.sendWebhookNotification(testReminder);
+
+    expect(result).toBe(true);
+    
+    const callArgs = mockedAxios.post.mock.calls[0];
+    const calledUrl = callArgs[0];
+    
+    // urlクエリパラメータが含まれていないことを確認
+    expect(calledUrl).not.toContain('url=');
+  });
+
+  test('URLがnullの場合、urlクエリパラメータは含まれない', async () => {
+    mockedAxios.post.mockResolvedValue({
+      status: 200,
+      data: { received: true }
+    });
+
+    const testReminder = {
+      id: 'test-null-url',
+      title: 'URLnullリマインダー',
+      message: 'テストメッセージ',
+      url: null,
+      notificationDateTime: new Date().toISOString(),
+      timezone: 'Asia/Tokyo',
+      category: 'test',
+      tags: []
+    };
+
+    const result = await NotificationService.sendWebhookNotification(testReminder);
+
+    expect(result).toBe(true);
+    
+    const callArgs = mockedAxios.post.mock.calls[0];
+    const calledUrl = callArgs[0];
+    
+    // urlクエリパラメータが含まれていないことを確認
+    expect(calledUrl).not.toContain('url=');
+  });
 });
