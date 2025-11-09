@@ -88,13 +88,14 @@ class ReminderStorage {
     const reminders = await this.readData();
     const newReminder = {
       id: Date.now(),
-      ...reminderData,
       title: reminderData.title,
       message: reminderData.message || '',
       url: reminderData.url || '',
       notificationDateTime: reminderData.notificationDateTime,
-      repeatSettings: reminderData.repeatSettings || null,
       notificationMethod: reminderData.notificationMethod || 'webhook',
+      category: reminderData.category,
+      tags: reminderData.tags || [],
+      repeatSettings: reminderData.repeatSettings || null,
       notificationStatus: 'pending',
       lastNotificationDateTime: null,
       timezone: 'Asia/Tokyo',
