@@ -12,7 +12,6 @@ Node.js で構築されたシンプルなAPIサーバです。
 - ヘルスチェックエンドポイント
 - ユーザーAPI（CRUD操作対応）
 - **ブックマーク管理API**（CRUD操作、検索、カテゴリ・タグ機能対応）
-- **TODO管理API**（CRUD操作、優先度・カテゴリ・タグ機能対応）
 - **リマインダー管理API**（スケジューリング、通知、日本語日付形式対応）
 - **Swagger UI API仕様書**（インタラクティブなAPI仕様書）
 
@@ -135,7 +134,7 @@ npm start
 
 ## データ永続化
 
-ブックマークデータは `data/bookmarks.json` ファイルに、TODOデータは `data/todos.json` ファイルに、リマインダーデータは `data/reminders.json` ファイルに保存されます。サーバー再起動後もデータは保持されます。
+ブックマークデータは `data/bookmarks.json` ファイルに、リマインダーデータは `data/reminders.json` ファイルに保存されます。サーバー再起動後もデータは保持されます。
 
 ## API エンドポイント
 
@@ -154,15 +153,6 @@ npm start
 - `PUT /api/bookmarks/:id` - ブックマーク更新
 - `DELETE /api/bookmarks/:id` - ブックマーク削除
 - `GET /api/bookmarks/meta/*` - メタデータ取得（カテゴリ・タグ・統計）
-
-#### TODO管理
-- `GET /api/todos` - TODO一覧取得（フィルタ対応）
-- `POST /api/todos` - 新規TODO作成
-- `GET /api/todos/:id` - 特定TODO取得
-- `PUT /api/todos/:id` - TODO更新
-- `DELETE /api/todos/:id` - TODO削除
-- `PATCH /api/todos/:id/toggle` - 完了状態切り替え
-- `GET /api/todos/meta/*` - メタデータ取得（カテゴリ・タグ・統計）
 
 #### リマインダー管理
 - `GET /api/reminders` - リマインダー一覧取得（フィルタ・検索対応）
@@ -201,11 +191,9 @@ totos_app/
 │   │   └── swagger.js              # Swagger UI設定
 │   ├── database/
 │   │   ├── bookmarkStorage.js      # ブックマークデータ永続化クラス
-│   │   ├── todoStorage.js          # TODOデータ永続化クラス
 │   │   └── reminderStorage.js      # リマインダーデータ永続化クラス
 │   ├── routes/
 │   │   ├── bookmarks.js            # ブックマーク関連ルーター
-│   │   ├── todos.js                # TODO関連ルーター
 │   │   └── reminders.js            # リマインダー関連ルーター
 │   ├── services/
 │   │   └── notificationService.js  # 通知サービス（Webhook・Email）
@@ -217,7 +205,6 @@ totos_app/
 │   └── server.js                   # メインサーバーファイル
 ├── data/
 │   ├── bookmarks.json              # ブックマークデータファイル
-│   ├── todos.json                  # TODOデータファイル
 │   └── reminders.json              # リマインダーデータファイル
 ├── tests/
 │   ├── helpers/                    # テストユーティリティ
@@ -229,26 +216,6 @@ totos_app/
 ├── package.json                    # プロジェクト設定
 └── README.md                       # このファイル
 ```
-
-### TODO管理API
-
-TODO管理APIの詳細仕様は [Swagger UI](http://localhost:3000/api-docs) で確認してください。
-
-#### 主要機能
-- **CRUD操作**: 作成・読み取り・更新・削除
-- **フィルタリング**: 完了状態、優先度、カテゴリ、タグによる絞り込み
-- **検索機能**: タイトル、説明、タグでの検索
-- **期限管理**: 期限日設定、期限切れ検知
-- **統計情報**: 進捗率、優先度別統計等
-
-#### エンドポイント概要
-- `GET /api/todos` - TODO一覧取得（フィルタ・検索対応）
-- `POST /api/todos` - 新規TODO作成
-- `GET /api/todos/:id` - 特定TODO取得
-- `PUT /api/todos/:id` - TODO更新
-- `DELETE /api/todos/:id` - TODO削除
-- `PATCH /api/todos/:id/toggle` - 完了状態切り替え
-- `GET /api/todos/meta/*` - メタデータ・統計情報
 
 ### リマインダー管理API
 
@@ -317,7 +284,6 @@ npm run init-data
 ### データファイルの確認
 ```bash
 cat data/bookmarks.json
-cat data/todos.json
 cat data/reminders.json
 ```
 

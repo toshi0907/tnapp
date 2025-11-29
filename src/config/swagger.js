@@ -62,7 +62,7 @@ const options = {
     info: {
       title: 'Totos API Server',
       version: '1.0.0',
-      description: 'Node.js で構築されたシンプルなAPIサーバ。ブックマーク管理とTODO管理機能を提供します。',
+      description: 'Node.js で構築されたシンプルなAPIサーバ。ブックマーク管理とリマインダー管理機能を提供します。',
       contact: {
         name: 'API Support',
         email: 'support@example.com'
@@ -130,75 +130,6 @@ const options = {
               type: 'string',
               format: 'date-time',
               description: '更新日時'
-            }
-          }
-        },
-        Todo: {
-          type: 'object',
-          required: ['title'],
-          properties: {
-            id: {
-              type: 'integer',
-              format: 'int64',
-              description: 'TODO ID (タイムスタンプベース)',
-              example: 1722672000000
-            },
-            title: {
-              type: 'string',
-              description: 'TODOタイトル',
-              example: 'APIサーバーの開発を完了する'
-            },
-            description: {
-              type: 'string',
-              description: 'TODOの詳細説明',
-              example: 'Node.js Express.jsを使用したRESTful APIサーバーの開発'
-            },
-            completed: {
-              type: 'boolean',
-              description: '完了状態',
-              example: false
-            },
-            priority: {
-              type: 'string',
-              enum: ['low', 'medium', 'high'],
-              description: '優先度',
-              example: 'high'
-            },
-            category: {
-              type: 'string',
-              description: 'カテゴリ',
-              example: 'development'
-            },
-            tags: {
-              type: 'array',
-              items: {
-                type: 'string'
-              },
-              description: 'タグ配列',
-              example: ['api', 'nodejs', 'express']
-            },
-            dueDate: {
-              type: 'string',
-              format: 'date-time',
-              nullable: true,
-              description: '期限日 (ISO 8601形式)',
-              example: '2025-08-10T00:00:00.000Z'
-            },
-            createdAt: {
-              type: 'string',
-              format: 'date-time',
-              description: '作成日時'
-            },
-            updatedAt: {
-              type: 'string',
-              format: 'date-time',
-              description: '更新日時'
-            },
-            completedAt: {
-              type: 'string',
-              format: 'date-time',
-              nullable: true,
-              description: '完了日時'
             }
           }
         },

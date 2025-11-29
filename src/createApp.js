@@ -9,7 +9,6 @@ const cors = require('cors');  // Cross-Origin Resource Sharing 対応
 const helmet = require('helmet');  // セキュリティヘッダー設定
 const { specs, swaggerUi, swaggerUiOptions, createSwaggerSetup } = require('./config/swagger');  // Swagger UI 設定
 const bookmarkRouter = require('./routes/bookmarks');  // ブックマーク API ルーター
-const todoRouter = require('./routes/todos');  // TODO API ルーター
 const reminderRouter = require('./routes/reminders');  // リマインダー API ルーター
 
 const path = require('path');  // パス操作ユーティリティ
@@ -49,16 +48,12 @@ function createApp() {
 
   // ヘルスチェックエンドポイント - システム状態とデータベース統計を返す
   const bookmarkStorage = require('./database/bookmarkStorage');
-  const todoStorage = require('./database/todoStorage');
   const reminderStorage = require('./database/reminderStorage');
   
   app.get('/health', async (req, res) => {
     try {
       // 各データベースから統計情報を非同期で取得
       const bookmarkCount = await bookmarkStorage.getBookmarkCount();  // ブックマーク総数
-      const todoCount = await todoStorage.getTodoCount();  // TODO総数
-      const completedTodos = await todoStorage.getCompletedCount();  // 完了TODO数
-      const pendingTodos = await todoStorage.getPendingCount();  // 未完了TODO数
       const reminderCount = await reminderStorage.getReminderCount();  // リマインダー総数
       const pendingReminders = await reminderStorage.getPendingCount();  // 未送信リマインダー数
       const sentReminders = await reminderStorage.getSentCount();  // 送信済みリマインダー数
@@ -68,7 +63,7 @@ function createApp() {
         status: 'OK',
         message: 'API Server is running',
         database: 'JSON File Storage',
-        bookmarkCount, todoCount, completedTodos, pendingTodos,
+        bookmarkCount,
         reminderCount, pendingReminders, sentReminders,
         timestamp: new Date().toISOString()
       });
@@ -109,11 +104,6 @@ function createApp() {
     res.sendFile(path.join(publicDir, 'bookmark', 'index.html'));
   });
   
-  // TODO管理ページ
-  app.get('/todo', (req, res) => {
-    res.sendFile(path.join(publicDir, 'todo', 'index.html'));
-  });
-  
   // リマインダー管理ページ
   app.get('/reminder', (req, res) => {
     res.sendFile(path.join(publicDir, 'reminder', 'index.html'));
@@ -122,7 +112,6 @@ function createApp() {
 
   // API ルーターの設定 - 各機能のRESTful APIエンドポイントを設定
   app.use('/api/bookmarks', bookmarkRouter);  // ブックマーク関連API
-  app.use('/api/todos', todoRouter);  // TODO関連API
   app.use('/api/reminders', reminderRouter);  // リマインダー関連API
 
   // 404エラーハンドラー - 存在しないルートへのアクセス時
