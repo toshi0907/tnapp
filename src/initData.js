@@ -6,7 +6,6 @@
 
 // 各データ管理ストレージクラスをインポート
 const bookmarkStorage = require('./database/bookmarkStorage');  // ブックマークデータ管理
-const todoStorage = require('./database/todoStorage');  // TODOデータ管理
 const reminderStorage = require('./database/reminderStorage');  // リマインダーデータ管理
 
 /**
@@ -63,71 +62,6 @@ async function initializeData() {
       console.log('✅ Sample bookmarks initialized successfully');
     } else {
       console.log(`📚 Database already contains ${existingBookmarks.length} bookmarks`);
-    }
-
-    // TODOデータの初期化処理
-    // 既存のTODOデータを確認
-    const existingTodos = await todoStorage.getTodos();
-    
-    if (existingTodos.length === 0) {
-      // データが空の場合のみサンプルTODOを追加
-      
-      // 高優先度の開発タスク（期限: 1週間後）
-      await todoStorage.addTodo({
-        title: 'APIサーバーの開発を完了する',
-        description: 'Node.js Express.jsを使用したRESTful APIサーバーの開発',
-        priority: 'high',
-        category: 'development',
-        tags: ['api', 'nodejs', 'express'],
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 1週間後
-      });
-      
-      // 中優先度のドキュメント作成（期限: 3日後）
-      await todoStorage.addTodo({
-        title: 'ドキュメント作成',
-        description: 'READMEファイルとAPI仕様書の作成',
-        priority: 'medium',
-        category: 'documentation',
-        tags: ['docs', 'readme'],
-        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString() // 3日後
-      });
-      
-      // 中優先度のテスト作成（期限なし）
-      await todoStorage.addTodo({
-        title: 'ユニットテストの作成',
-        description: 'APIエンドポイントのユニットテストを作成する',
-        priority: 'medium',
-        category: 'testing',
-        tags: ['test', 'unit-test'],
-        dueDate: null
-      });
-      
-      // 低優先度のレビュータスク（期限なし）
-      await todoStorage.addTodo({
-        title: 'コードレビュー',
-        description: 'チームメンバーによるコードレビューを実施',
-        priority: 'low',
-        category: 'review',
-        tags: ['review', 'quality'],
-        dueDate: null
-      });
-      
-      // 完了済みのTODOサンプルも作成
-      const completedTodo = await todoStorage.addTodo({
-        title: 'プロジェクト初期設定',
-        description: 'package.jsonの作成と依存関係のインストール',
-        priority: 'high',
-        category: 'setup',
-        tags: ['setup', 'initial'],
-        dueDate: null
-      });
-      
-      // 作成したTODOを完了状態に変更
-      await todoStorage.updateTodo(completedTodo.id, { completed: true });
-      
-      console.log('✅ Sample todos initialized successfully');
-    } else {
-      console.log(`📝 Database already contains ${existingTodos.length} todos`);
     }
 
     // リマインダーデータの初期化処理

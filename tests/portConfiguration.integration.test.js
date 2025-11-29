@@ -99,11 +99,11 @@ describe('ポート設定統合テスト - Port Configuration Integration Tests'
         
         expect(bookmarkPageResponse.headers['content-type']).toMatch(/text\/html/);
         
-        const todoPageResponse = await request(app)
-          .get('/todo')
+        const reminderPageResponse = await request(app)
+          .get('/reminder')
           .expect(200);
         
-        expect(todoPageResponse.headers['content-type']).toMatch(/text\/html/);
+        expect(reminderPageResponse.headers['content-type']).toMatch(/text\/html/);
         
       } finally {
         process.env.PORT = originalPort;
@@ -128,7 +128,7 @@ describe('ポート設定統合テスト - Port Configuration Integration Tests'
         // 各API エンドポイントの動作確認
         const apiEndpoints = [
           '/api/bookmarks',
-          '/api/todos',
+          '/api/reminders',
           '/health'
         ];
         

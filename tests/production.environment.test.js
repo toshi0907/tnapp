@@ -34,12 +34,12 @@ describe('本番環境テスト - Production Environment Tests', () => {
       
       expect(bookmarkResponse.text).toContain('<title>Bookmarks</title>');
 
-      // /todo ページ  
-      const todoResponse = await request(app)
-        .get('/todo')
+      // /reminder ページ  
+      const reminderResponse = await request(app)
+        .get('/reminder')
         .expect(200);
       
-      expect(todoResponse.text).toContain('<title>Todo List</title>');
+      expect(reminderResponse.text).toContain('<title>Reminders</title>');
     });
 
     it('API エンドポイントが認証なしでアクセス可能', async () => {
@@ -49,7 +49,7 @@ describe('本番環境テスト - Production Environment Tests', () => {
         .expect(200);
 
       await request(app)
-        .get('/api/todos')
+        .get('/api/reminders')
         .expect(200);
     });
 
