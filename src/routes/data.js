@@ -161,8 +161,11 @@ router.post('/import', async (req, res) => {
       return res.status(400).json({ error: 'reminders must be an array' });
     }
 
-    // データファイルのパスを取得
+    // データファイルのパスを取得（ストレージモジュールと同じパスを使用）
     const dataDir = path.join(__dirname, '../../data');
+
+    // データディレクトリが存在しない場合は作成
+    await fs.mkdir(dataDir, { recursive: true });
 
     // ブックマークデータを保存
     await fs.writeFile(
