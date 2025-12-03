@@ -1,15 +1,19 @@
 /**
  * データエクスポート/インポートAPIルート
- * JSONファイルのダウンロードとアップロード機能を提供
+ * dataフォルダのJSONファイルのダウンロードとアップロード機能を提供
  */
 
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
-const bookmarkStorage = require('../database/bookmarkStorage');
-const reminderStorage = require('../database/reminderStorage');
 
 const router = express.Router();
+
+// dataフォルダのパス
+const DATA_DIR = path.join(__dirname, '../../data');
+
+// サポートするファイル名のリスト
+const SUPPORTED_FILES = ['bookmarks.json', 'reminders.json'];
 
 /**
  * @swagger
@@ -20,101 +24,133 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/data/export:
+ * /api/data/files:
  *   get:
- *     summary: 全データをエクスポート
- *     description: ブックマークとリマインダーの全データをJSON形式でエクスポート
+ *     summary: 利用可能なデータファイル一覧を取得
+ *     description: dataフォルダにあるJSONファイルの一覧を取得
  *     tags: [Data]
  *     responses:
  *       200:
- *         description: エクスポートデータ
+ *         description: ファイル一覧
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 version:
- *                   type: string
- *                   description: エクスポートデータのバージョン
- *                   example: "1.0"
- *                 exportedAt:
- *                   type: string
- *                   format: date-time
- *                   description: エクスポート日時
- *                 bookmarks:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Bookmark'
- *                 reminders:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Reminder'
- *       500:
- *         description: サーバーエラー
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                     description: ファイル名
+ *                   size:
+ *                     type: integer
+ *                     description: ファイルサイズ（バイト）
  */
-// 全データをエクスポート
-router.get('/export', async (req, res) => {
+// 利用可能なデータファイル一覧を取得
+router.get('/files', async (req, res) => {
   try {
-    // 全データを取得
-    const bookmarks = await bookmarkStorage.getBookmarks();
-    const reminders = await reminderStorage.getReminders();
-
-    // エクスポートデータを構築
-    const exportData = {
-      version: '1.0',
-      exportedAt: new Date().toISOString(),
-      bookmarks,
-      reminders
-    };
-
-    // ダウンロード用のヘッダーを設定
-    const filename = `tnapp-export-${new Date().toISOString().split('T')[0]}.json`;
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.setHeader('Content-Type', 'application/json');
-
-    res.json(exportData);
+    const files = [];
+    for (const filename of SUPPORTED_FILES) {
+      const filePath = path.join(DATA_DIR, filename);
+      try {
+        const stats = await fs.stat(filePath);
+        files.push({
+          name: filename,
+          size: stats.size
+        });
+      } catch {
+        // ファイルが存在しない場合はスキップ
+      }
+    }
+    res.json(files);
   } catch (error) {
-    console.error('Error exporting data:', error);
-    res.status(500).json({ error: 'Failed to export data' });
+    console.error('Error listing data files:', error);
+    res.status(500).json({ error: 'Failed to list data files' });
   }
 });
 
 /**
  * @swagger
- * /api/data/import:
- *   post:
- *     summary: データをインポート
- *     description: エクスポートされたJSONデータをインポートして既存データを置き換え
+ * /api/data/export/{filename}:
+ *   get:
+ *     summary: 指定したJSONファイルをダウンロード
+ *     description: dataフォルダのJSONファイルをそのままダウンロード
  *     tags: [Data]
+ *     parameters:
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [bookmarks.json, reminders.json]
+ *         description: ダウンロードするファイル名
+ *     responses:
+ *       200:
+ *         description: JSONファイル
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *       404:
+ *         description: ファイルが見つからない
+ *       500:
+ *         description: サーバーエラー
+ */
+// 指定したJSONファイルをダウンロード
+router.get('/export/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    
+    // サポートされていないファイル名をブロック
+    if (!SUPPORTED_FILES.includes(filename)) {
+      return res.status(400).json({ error: 'Unsupported file name' });
+    }
+    
+    const filePath = path.join(DATA_DIR, filename);
+    
+    // ファイルの存在確認
+    try {
+      await fs.access(filePath);
+    } catch {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    // ファイルの内容を読み込み
+    const content = await fs.readFile(filePath, 'utf-8');
+    
+    // ダウンロード用のヘッダーを設定
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/json');
+    
+    res.send(content);
+  } catch (error) {
+    console.error('Error exporting data file:', error);
+    res.status(500).json({ error: 'Failed to export data file' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/data/import/{filename}:
+ *   post:
+ *     summary: 指定したJSONファイルをアップロード
+ *     description: dataフォルダのJSONファイルを上書き保存
+ *     tags: [Data]
+ *     parameters:
+ *       - in: path
+ *         name: filename
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [bookmarks.json, reminders.json]
+ *         description: アップロードするファイル名
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - bookmarks
- *               - reminders
- *             properties:
- *               version:
- *                 type: string
- *                 description: エクスポートデータのバージョン
- *               exportedAt:
- *                 type: string
- *                 format: date-time
- *                 description: エクスポート日時
- *               bookmarks:
- *                 type: array
- *                 items:
- *                   $ref: '#/components/schemas/Bookmark'
- *               reminders:
- *                 type: array
- *                 items:
- *                   $ref: '#/components/schemas/Reminder'
+ *             type: array
+ *             description: インポートするデータの配列
  *     responses:
  *       200:
  *         description: インポート成功
@@ -125,70 +161,50 @@ router.get('/export', async (req, res) => {
  *               properties:
  *                 message:
  *                   type: string
- *                   example: "Data imported successfully"
- *                 imported:
- *                   type: object
- *                   properties:
- *                     bookmarks:
- *                       type: integer
- *                       description: インポートされたブックマーク数
- *                     reminders:
- *                       type: integer
- *                       description: インポートされたリマインダー数
+ *                   example: "File imported successfully"
+ *                 filename:
+ *                   type: string
+ *                   description: インポートされたファイル名
+ *                 count:
+ *                   type: integer
+ *                   description: インポートされたアイテム数
  *       400:
  *         description: バリデーションエラー
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: サーバーエラー
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  */
-// データをインポート
-router.post('/import', async (req, res) => {
+// 指定したJSONファイルをアップロード
+router.post('/import/:filename', async (req, res) => {
   try {
-    const { bookmarks, reminders } = req.body;
-
-    // バリデーション
-    if (!Array.isArray(bookmarks)) {
-      return res.status(400).json({ error: 'bookmarks must be an array' });
+    const { filename } = req.params;
+    const data = req.body;
+    
+    // サポートされていないファイル名をブロック
+    if (!SUPPORTED_FILES.includes(filename)) {
+      return res.status(400).json({ error: 'Unsupported file name' });
     }
-    if (!Array.isArray(reminders)) {
-      return res.status(400).json({ error: 'reminders must be an array' });
+    
+    // データが配列であることを確認
+    if (!Array.isArray(data)) {
+      return res.status(400).json({ error: 'Data must be an array' });
     }
-
-    // データファイルのパスを取得（ストレージモジュールと同じパスを使用）
-    const dataDir = path.join(__dirname, '../../data');
-
+    
+    const filePath = path.join(DATA_DIR, filename);
+    
     // データディレクトリが存在しない場合は作成
-    await fs.mkdir(dataDir, { recursive: true });
-
-    // ブックマークデータを保存
-    await fs.writeFile(
-      path.join(dataDir, 'bookmarks.json'),
-      JSON.stringify(bookmarks, null, 2)
-    );
-
-    // リマインダーデータを保存
-    await fs.writeFile(
-      path.join(dataDir, 'reminders.json'),
-      JSON.stringify(reminders, null, 2)
-    );
-
+    await fs.mkdir(DATA_DIR, { recursive: true });
+    
+    // ファイルに保存
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+    
     res.json({
-      message: 'Data imported successfully',
-      imported: {
-        bookmarks: bookmarks.length,
-        reminders: reminders.length
-      }
+      message: 'File imported successfully',
+      filename,
+      count: data.length
     });
   } catch (error) {
-    console.error('Error importing data:', error);
-    res.status(500).json({ error: 'Failed to import data' });
+    console.error('Error importing data file:', error);
+    res.status(500).json({ error: 'Failed to import data file' });
   }
 });
 

@@ -39,14 +39,21 @@
     <div class="data-actions">
       <div class="data-action-card">
         <h3>💾 エクスポート</h3>
-        <p>ブックマークとリマインダーの全データをJSONファイルとしてダウンロードします。</p>
-        <button id="export-btn" class="action-btn export-btn">データをエクスポート</button>
+        <p>dataフォルダのJSONファイルをダウンロードします。</p>
+        <div class="file-buttons">
+          <button class="action-btn export-btn" data-file="bookmarks.json">📚 bookmarks.json</button>
+          <button class="action-btn export-btn" data-file="reminders.json">⏰ reminders.json</button>
+        </div>
       </div>
       <div class="data-action-card">
         <h3>📤 インポート</h3>
         <p>JSONファイルをアップロードしてデータを復元します。既存データは上書きされます。</p>
-        <input type="file" id="import-file" accept=".json" style="display: none;">
-        <button id="import-btn" class="action-btn import-btn">データをインポート</button>
+        <div class="file-buttons">
+          <input type="file" id="import-bookmarks" accept=".json" style="display: none;" data-file="bookmarks.json">
+          <button class="action-btn import-btn" data-file="bookmarks.json">📚 bookmarks.json</button>
+          <input type="file" id="import-reminders" accept=".json" style="display: none;" data-file="reminders.json">
+          <button class="action-btn import-btn" data-file="reminders.json">⏰ reminders.json</button>
+        </div>
       </div>
     </div>
     <div id="data-message" class="data-message"></div>
