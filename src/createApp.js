@@ -10,6 +10,7 @@ const helmet = require('helmet');  // セキュリティヘッダー設定
 const { specs, swaggerUi, swaggerUiOptions, createSwaggerSetup } = require('./config/swagger');  // Swagger UI 設定
 const bookmarkRouter = require('./routes/bookmarks');  // ブックマーク API ルーター
 const reminderRouter = require('./routes/reminders');  // リマインダー API ルーター
+const dataRouter = require('./routes/data');  // データエクスポート/インポート API ルーター
 
 const path = require('path');  // パス操作ユーティリティ
 require('dotenv').config();  // 環境変数の読み込み
@@ -113,6 +114,7 @@ function createApp() {
   // API ルーターの設定 - 各機能のRESTful APIエンドポイントを設定
   app.use('/api/bookmarks', bookmarkRouter);  // ブックマーク関連API
   app.use('/api/reminders', reminderRouter);  // リマインダー関連API
+  app.use('/api/data', dataRouter);  // データエクスポート/インポートAPI
 
   // 404エラーハンドラー - 存在しないルートへのアクセス時
   app.use('*', (req, res) => {

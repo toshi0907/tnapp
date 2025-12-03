@@ -32,6 +32,27 @@
       </div>
     </a>
   </div>
+
+  <!-- データエクスポート/インポートセクション -->
+  <div class="data-management-section">
+    <h2>📁 データ管理</h2>
+    <div class="data-actions">
+      <div class="data-action-card">
+        <h3>💾 エクスポート</h3>
+        <p>ブックマークとリマインダーの全データをJSONファイルとしてダウンロードします。</p>
+        <button id="export-btn" class="action-btn export-btn">データをエクスポート</button>
+      </div>
+      <div class="data-action-card">
+        <h3>📤 インポート</h3>
+        <p>JSONファイルをアップロードしてデータを復元します。既存データは上書きされます。</p>
+        <input type="file" id="import-file" accept=".json" style="display: none;">
+        <button id="import-btn" class="action-btn import-btn">データをインポート</button>
+      </div>
+    </div>
+    <div id="data-message" class="data-message"></div>
+  </div>
+
+  <script src="data-management.js"></script>
 </body>
 
 </html>
