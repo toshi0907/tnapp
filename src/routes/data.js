@@ -58,8 +58,11 @@ router.get('/files', async (req, res) => {
           name: filename,
           size: stats.size
         });
-      } catch {
-        // ファイルが存在しない場合はスキップ
+      } catch (error) {
+        // ファイルが存在しない場合はスキップ（ENOENTエラーのみ）
+        if (error.code !== 'ENOENT') {
+          console.error(`Error accessing file ${filename}:`, error);
+        }
       }
     }
     res.json(files);
@@ -101,7 +104,7 @@ router.get('/export/:filename', async (req, res) => {
   try {
     const { filename } = req.params;
     
-    // サポートされていないファイル名をブロック
+    // サポートされていないファイル名をブロック（ホワイトリストでパストラバーサルを防止）
     if (!SUPPORTED_FILES.includes(filename)) {
       return res.status(400).json({ error: 'Unsupported file name' });
     }
@@ -111,8 +114,14 @@ router.get('/export/:filename', async (req, res) => {
     // ファイルの存在確認
     try {
       await fs.access(filePath);
-    } catch {
-      return res.status(404).json({ error: 'File not found' });
+    } catch (error) {
+      // ファイルが存在しない場合のみ404を返す
+      if (error.code === 'ENOENT') {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      // その他のエラーは500を返す
+      console.error('Error accessing file:', error);
+      return res.status(500).json({ error: 'Failed to access file' });
     }
     
     // ファイルの内容を読み込み

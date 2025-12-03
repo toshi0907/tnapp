@@ -85,8 +85,11 @@ describe('Data Export/Import API', () => {
       // Given - ファイルが存在しない場合を確認するため削除
       try {
         await fs.unlink(path.join(dataDir, 'bookmarks.json'));
-      } catch {
-        // ファイルが存在しない場合は無視
+      } catch (error) {
+        // ファイルが存在しない場合（ENOENT）のみ無視
+        if (error.code !== 'ENOENT') {
+          throw error;
+        }
       }
 
       // When
